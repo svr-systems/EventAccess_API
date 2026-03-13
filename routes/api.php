@@ -8,6 +8,7 @@ use App\Http\Controllers\EventController;
 use App\Http\Controllers\PresentationDateController;
 use App\Http\Controllers\PresentationTicketController;
 use App\Http\Controllers\SaleController;
+use App\Http\Controllers\StandTypeController;
 use App\Http\Controllers\TicketCheckinController;
 use App\Http\Controllers\TicketTypeController;
 use App\Http\Controllers\UserController;
@@ -84,6 +85,9 @@ Route::prefix('v1')->group(function () {
   Route::group(['middleware' => 'auth:api'], function () {
     Route::middleware([EnsureUserIsCompany::class])->group(function () {
       Route::prefix('company')->group(function () {
+
+        Route::apiResource('/events/stand_types', StandTypeController::class);
+        Route::patch('/events/stand_types/{id}/activate', [StandTypeController::class, 'activate']);
 
         Route::apiResource('/events/presentation_tickets', PresentationTicketController::class);
         Route::patch('/events/presentation_tickets/{id}/activate', [PresentationTicketController::class, 'activate']);

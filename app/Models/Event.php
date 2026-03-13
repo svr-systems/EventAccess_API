@@ -70,6 +70,8 @@ class Event extends Model {
    */
   public static function validData(array $data) {
     $rules = [
+      'has_stands' => ['required', 'boolean'],
+
       'company_id' => ['required', 'integer', 'exists:companies,id'],
 
       'name' => ['required', 'string', 'min:2', 'max:255'],
@@ -111,6 +113,7 @@ class Event extends Model {
     $items->select([
       'events.id',
       'events.is_active',
+      'events.has_stands',
       'events.company_id',
       'events.name',
       'events.description',
@@ -166,6 +169,7 @@ class Event extends Model {
     $logo_doc = data_get($data, 'logo_doc');
     $flyer_doc = data_get($data, 'flyer_doc');
 
+    $item->has_stands = Input::toBool(data_get($data, 'has_stands'));
     $item->company_id = Input::toId(data_get($data, 'company_id'));
     $item->name = Input::toUpper(data_get($data, 'name'));
     $item->description = Input::toUpper(data_get($data, 'description'));
