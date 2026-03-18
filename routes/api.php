@@ -10,6 +10,7 @@ use App\Http\Controllers\PresentationDateController;
 use App\Http\Controllers\PresentationTicketController;
 use App\Http\Controllers\SaleController;
 use App\Http\Controllers\StandTypeController;
+use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\SupplierUserController;
 use App\Http\Controllers\TicketCheckinController;
 use App\Http\Controllers\TicketTypeController;
@@ -17,6 +18,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Middleware\EnsureUserIsAdmin;
 use App\Http\Middleware\EnsureUserIsCompany;
 use App\Http\Middleware\EnsureUserIsStaff;
+use App\Http\Middleware\EnsureUserIsSupplier;
 use Illuminate\Support\Facades\Route;
 
 Route::post('login', [AuthController::class, 'login']);
@@ -69,6 +71,24 @@ Route::prefix('v1')->group(function () {
 
 
   // -------------------------
+  // SUPPLIER
+  // -------------------------
+  Route::group(['middleware' => 'auth:api'], function () {
+    Route::middleware([EnsureUserIsSupplier::class])->group(function () {
+      Route::prefix('suppliers')->group(function () {
+
+        Route::apiResource('/supplier', SupplierController::class);
+        Route::patch('/supplier/{id}/activate', [SupplierController::class, 'activate']);
+
+        Route::apiResource('/supplier', SupplierController::class);
+        Route::patch('/supplier/{id}/activate', [SupplierController::class, 'activate']);
+
+      });
+    });
+  });
+
+
+  // -------------------------
   // STAFF
   // -------------------------
   Route::group(['middleware' => 'auth:api'], function () {
@@ -91,7 +111,7 @@ Route::prefix('v1')->group(function () {
 
         Route::apiResource('/events/event_stand_configs', EventStandConfigController::class);
         Route::patch('/events/event_stand_configs/{id}/activate', [EventStandConfigController::class, 'activate']);
-        
+
         Route::apiResource('/events/stand_types', StandTypeController::class);
         Route::patch('/events/stand_types/{id}/activate', [StandTypeController::class, 'activate']);
 
