@@ -67,9 +67,9 @@ class SupplierUserController extends Controller {
     DB::beginTransaction();
 
     try {
-      // $user = json_encode($request->user);
-      // $user_data = json_decode($user);
-      $user_data = json_decode($request->user);
+      $user = json_encode($request->user);
+      $user_data = json_decode($user);
+      // $user_data = json_decode($request->user);
       $user_data->role_id = 6;
 
       $email = Input::toLower($user_data->email);

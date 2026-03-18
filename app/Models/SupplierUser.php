@@ -74,12 +74,12 @@ class SupplierUser extends Model {
 
     $items->select([
       'supplier_users.id',
-      'supplier_users.is_active',
+      // 'supplier_users.is_active',
       'supplier_users.supplier_id',
       'supplier_users.user_id',
     ]);
 
-    $items->where('supplier_users.is_active', (bool) ((int) $is_active));
+    // $items->where('supplier_users.is_active', (bool) ((int) $is_active));
     $items->where('supplier_users.supplier_id', $request->supplier_id);
 
     $items->with([

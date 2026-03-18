@@ -77,8 +77,8 @@ Route::prefix('v1')->group(function () {
     Route::middleware([EnsureUserIsSupplier::class])->group(function () {
       Route::prefix('suppliers')->group(function () {
 
-        Route::apiResource('/supplier', SupplierController::class);
-        Route::patch('/supplier/{id}/activate', [SupplierController::class, 'activate']);
+        Route::apiResource('/users', SupplierUserController::class);
+        Route::patch('/users/{id}/activate', [SupplierUserController::class, 'activate']);
 
         Route::apiResource('/supplier', SupplierController::class);
         Route::patch('/supplier/{id}/activate', [SupplierController::class, 'activate']);
