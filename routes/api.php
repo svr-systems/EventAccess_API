@@ -10,11 +10,11 @@ use App\Http\Controllers\PresentationDateController;
 use App\Http\Controllers\PresentationTicketController;
 use App\Http\Controllers\SaleController;
 use App\Http\Controllers\StandTypeController;
+use App\Http\Controllers\SupplierUserController;
 use App\Http\Controllers\TicketCheckinController;
 use App\Http\Controllers\TicketTypeController;
 use App\Http\Controllers\UserController;
 use App\Http\Middleware\EnsureUserIsAdmin;
-use App\Http\Middleware\EnsureUserIsClient;
 use App\Http\Middleware\EnsureUserIsCompany;
 use App\Http\Middleware\EnsureUserIsStaff;
 use Illuminate\Support\Facades\Route;
@@ -39,6 +39,8 @@ Route::prefix('v1')->group(function () {
       Route::get('/presentation_tickets', [PresentationTicketController::class, 'publicIndex']);
       Route::post('/sale', [SaleController::class, 'store']);
     });
+
+    Route::post('suppliers', [SupplierUserController::class, 'publicStore']);
 
     Route::post('users', [UserController::class, 'publicStore']);
 
