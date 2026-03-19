@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Traits\HasAuditFields;
 use App\Support\DisplayId;
 use App\Support\Input;
 use Illuminate\Database\Eloquent\Model;
@@ -9,8 +10,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Http\Request;
 use Validator;
 
-class EventSupplier extends Model
-{
+class EventSupplier extends Model {
+  use HasAuditFields;
 
   /**
    * ===========================================
@@ -40,10 +41,9 @@ class EventSupplier extends Model
     return $this->belongsTo(User::class, 'updated_by_id');
   }
 
-  public function company_users()
-{
-    return $this->hasMany(CompanyUser::class);
-}
+  public function events(): BelongsTo {
+    return $this->belongsTo(Event::class, 'event_id');
+  }
 
   /**
    * ===========================================
@@ -87,7 +87,14 @@ class EventSupplier extends Model
       'event_suppliers.supplier_id',
     ]);
 
-    $items->where('event_suppliers.is_active', (bool) ((int) $is_active));
+    $items->with([
+      'created_by:id,email,name,paternal_surname,maternal_surname',
+      'updated_by:id,email,name,paternal_surname,maternal_surname',
+      'events:id,name,description'
+    ]);
+
+    $items->where('event_suppliers.is_active', (bool) ((int) $is_active))->
+      where('supplier_id',$request->supplier_id);
 
     return $items->get();
   }

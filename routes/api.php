@@ -6,6 +6,7 @@ use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\CompanyUserController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\EventStandConfigController;
+use App\Http\Controllers\EventSupplierController;
 use App\Http\Controllers\OfferController;
 use App\Http\Controllers\PresentationDateController;
 use App\Http\Controllers\PresentationTicketController;
@@ -86,6 +87,8 @@ Route::prefix('v1')->group(function () {
 
         Route::apiResource('/supplier', SupplierController::class);
         Route::patch('/supplier/{id}/activate', [SupplierController::class, 'activate']);
+
+        Route::get('/events/supplier', [EventSupplierController::class, 'index']);
 
         Route::get('/events/stands', [StandTypeController::class, 'suppliersIndex']);
 
