@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Traits\HasAuditFields;
 use App\Support\DisplayId;
 use App\Support\Input;
 use Illuminate\Database\Eloquent\Model;
@@ -9,7 +10,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Http\Request;
 use Validator;
 
-class StandType extends Model {
+class Offer extends Model {
+  use HasAuditFields;
 
   /**
    * ===========================================
@@ -39,13 +41,17 @@ class StandType extends Model {
     return $this->belongsTo(User::class, 'updated_by_id');
   }
 
+  public function stand_type(): BelongsTo {
+    return $this->belongsTo(StandType::class, 'stand_type_id');
+  }
+
   /**
    * ===========================================
    * ACCESSORES
    * ===========================================
    */
   public function getDisplayIdAttribute(): string {
-    return DisplayId::make('ST', $this->id, 4);
+    return DisplayId::make('E', $this->id, 4);
   }
 
   /**
@@ -55,13 +61,28 @@ class StandType extends Model {
    */
   public static function validData(array $data) {
     $rules = [
+      'stand_type_id' => ['required', 'integer', 'exists:stand_types,id'],
+      'supplier_id' => ['required', 'integer', 'exists:suppliers,id'],
       'event_id' => ['required', 'integer', 'exists:events,id'],
-      'name' => ['required', 'string', 'min:2', 'max:30'],
+      'description' => ['required', 'string', 'min:2'],
     ];
 
-    $msgs = [];
+    $msgs = [
+      'required' => 'El campo :attribute es obligatorio.',
+      'integer' => 'El campo :attribute debe ser un número entero.',
+      'exists' => 'El :attribute seleccionado no existe.',
+      'string' => 'El campo :attribute debe ser un texto válido.',
+      'min' => 'El campo :attribute debe tener al menos :min caracteres.',
+    ];
 
-    return Validator::make($data, $rules, $msgs);
+    $attributes = [
+      'stand_type_id' => 'tipo de stand',
+      'supplier_id' => 'proveedor',
+      'event_id' => 'evento',
+      'description' => 'descripción',
+    ];
+
+    return Validator::make($data, $rules, $msgs, $attributes);
   }
 
   /**
@@ -75,14 +96,17 @@ class StandType extends Model {
     $items = self::query();
 
     $items->select([
-      'stand_types.id',
-      'stand_types.is_active',
-      'stand_types.event_id',
-      'stand_types.name',
+      'offers.id',
+      'offers.is_active',
+      'offers.stand_type_id',
+      'offers.supplier_id',
+      'offers.event_id',
+      'offers.description',
     ]);
 
-    $items->where('stand_types.is_active', (bool) ((int) $is_active))->
-      where('stand_types.event_id', $request->event_id);
+    $items->where('offers.is_active', (bool) ((int) $is_active))->
+      where('offers.event_id', $request->event_id)->
+      where('offers.supplier_id', $request->supplier_id);
 
     return $items->get();
   }
@@ -90,11 +114,12 @@ class StandType extends Model {
   public static function getItem($id, Request $request = null) {
     $item = self::query();
 
-    $item->select(['stand_types.*']);
+    $item->select(['offers.*']);
 
     $item->with([
       'created_by:id,email,name,paternal_surname,maternal_surname',
       'updated_by:id,email,name,paternal_surname,maternal_surname',
+      'stand_type:id,name'
     ]);
 
     $item->whereKey((int) $id);
@@ -115,33 +140,13 @@ class StandType extends Model {
    */
   public static function saveData(self $item, array $data): self {
 
+    $item->stand_type_id = Input::toId(data_get($data, 'stand_type_id'));
+    $item->supplier_id = Input::toId(data_get($data, 'supplier_id'));
     $item->event_id = Input::toId(data_get($data, 'event_id'));
-    $item->name = Input::toUpper(data_get($data, 'name'));
+    $item->description = Input::toUpper(data_get($data, 'description'));
 
     $item->save();
 
     return $item;
-  }
-
-  /**
-   * ===========================================
-   * CONSULTAS SUPPLIER
-   * ===========================================
-   */
-  public static function getSuppliersItems(Request $request) {
-
-    $items = self::query();
-
-   $items->select([
-      'stand_types.id',
-      'stand_types.is_active',
-      'stand_types.event_id',
-      'stand_types.name',
-    ]);
-
-    $items->where('stand_types.is_active', true)->
-      where('stand_types.event_id', $request->event_id);
-
-    return $items->get();
   }
 }

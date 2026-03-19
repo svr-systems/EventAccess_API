@@ -40,7 +40,7 @@ class EventStandConfig extends Model {
   }
 
   public function stand_type(): BelongsTo {
-    return $this->belongsTo(StandType::class, 'id');
+    return $this->belongsTo(StandType::class, 'stand_type_id');
   }
 
   /**
@@ -141,7 +141,7 @@ class EventStandConfig extends Model {
       'event_stand_configs.has_internet',
     ]);
 
-     $items->join('stand_types', 'stand_types.id', '=', 'event_stand_configs.stand_type_id');
+    $items->join('stand_types', 'stand_types.id', '=', 'event_stand_configs.stand_type_id');
 
     $items->where('event_stand_configs.is_active', (bool) ((int) $is_active))->
       where('stand_types.event_id', $request->event_id);

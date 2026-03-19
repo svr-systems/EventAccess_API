@@ -6,6 +6,7 @@ use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\CompanyUserController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\EventStandConfigController;
+use App\Http\Controllers\OfferController;
 use App\Http\Controllers\PresentationDateController;
 use App\Http\Controllers\PresentationTicketController;
 use App\Http\Controllers\SaleController;
@@ -77,11 +78,16 @@ Route::prefix('v1')->group(function () {
     Route::middleware([EnsureUserIsSupplier::class])->group(function () {
       Route::prefix('suppliers')->group(function () {
 
+        Route::apiResource('/offers', OfferController::class);
+        Route::patch('/offers/{id}/activate', [OfferController::class, 'activate']);
+
         Route::apiResource('/users', SupplierUserController::class);
         Route::patch('/users/{id}/activate', [SupplierUserController::class, 'activate']);
 
         Route::apiResource('/supplier', SupplierController::class);
         Route::patch('/supplier/{id}/activate', [SupplierController::class, 'activate']);
+
+        Route::get('/events/stands', [StandTypeController::class, 'suppliersIndex']);
 
       });
     });

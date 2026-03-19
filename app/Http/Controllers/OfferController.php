@@ -3,12 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\HasActiveToggle;
-use App\Models\StandType;
+use App\Models\Offer;
 use DB;
 use Illuminate\Http\Request;
 use Throwable;
 
-class StandTypeController extends Controller {
+class OfferController extends Controller {
   use HasActiveToggle;
 
   /**
@@ -19,7 +19,7 @@ class StandTypeController extends Controller {
   public function index(Request $request) {
     try {
       return $this->rsp(200, 'Registros retornados correctamente', [
-        'items' => StandType::getItems($request),
+        'items' => Offer::getItems($request),
       ]);
     } catch (Throwable $err) {
       return $this->rsp(500, null, $err);
@@ -28,7 +28,7 @@ class StandTypeController extends Controller {
 
   public function show(string $id, Request $request) {
     try {
-      $item = StandType::getItem($id, $request);
+      $item = Offer::getItem($id, $request);
 
       if (is_null($item)) {
         return $this->rsp(404, 'Registro no encontrado');
@@ -51,11 +51,11 @@ class StandTypeController extends Controller {
   }
 
   public function destroy(string $id, Request $request) {
-    return $this->setActive(StandType::class, $id, $request, false);
+    return $this->setActive(Offer::class, $id, $request, false);
   }
 
   public function activate(string $id, Request $request) {
-    return $this->setActive(StandType::class, $id, $request, true);
+    return $this->setActive(Offer::class, $id, $request, true);
   }
 
   protected function storeUpdate(?string $id, Request $request) {
@@ -64,7 +64,7 @@ class StandTypeController extends Controller {
     try {
       $store_mode = is_null($id);
 
-      $valid = StandType::validData($request->all());
+      $valid = Offer::validData($request->all());
       if ($valid->fails()) {
         DB::rollBack();
         return $this->rsp(422, $valid->errors()->first(), null, $valid->errors()->toArray());
@@ -72,24 +72,19 @@ class StandTypeController extends Controller {
 
 
       if ($store_mode) {
-        $item = new StandType();
-        $item->created_by_id = $request->user()->id;
-        $item->updated_by_id = $request->user()->id;
+        $item = new Offer();
       } else {
-        $item = StandType::find((int) $id);
+        $item = Offer::find((int) $id);
 
         if (is_null($item)) {
           DB::rollBack();
           return $this->rsp(404, 'Registro no encontrado');
         }
-
-        $item->updated_by_id = $request->user()->id;
       }
 
       $payload = $request->all();
-      $payload['logo_doc'] = $request->file('logo_doc');
 
-      $item = StandType::saveData($item, $payload);
+      $item = Offer::saveData($item, $payload);
 
       DB::commit();
 
@@ -100,21 +95,6 @@ class StandTypeController extends Controller {
       );
     } catch (Throwable $err) {
       DB::rollBack();
-      return $this->rsp(500, null, $err);
-    }
-  }
-
-  /**
-   * ===========================================
-   * CRUD
-   * ===========================================
-   */
-  public function suppliersIndex(Request $request) {
-    try {
-      return $this->rsp(200, 'Registros retornados correctamente', [
-        'items' => StandType::getSuppliersItems($request),
-      ]);
-    } catch (Throwable $err) {
       return $this->rsp(500, null, $err);
     }
   }
