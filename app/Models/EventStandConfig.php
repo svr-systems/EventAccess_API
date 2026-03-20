@@ -191,4 +191,41 @@ class EventStandConfig extends Model {
 
     return $item;
   }
+
+  /**
+   * ===========================================
+   * CONSULTAS SUPPLIER
+   * ===========================================
+   */
+  public static function getSuplierItems(Request $request) {
+
+    $offer = Offer::find($request->offer_id);
+
+
+    if(!$offer)
+      return null;
+    
+    $items = self::query();
+
+    $items->select([
+      'event_stand_configs.id',
+      'event_stand_configs.is_active',
+      'event_stand_configs.stand_type_id',
+      'event_stand_configs.capacity',
+      'event_stand_configs.price',
+      'event_stand_configs.size_length',
+      'event_stand_configs.size_width',
+      'event_stand_configs.size_height',
+      'event_stand_configs.has_electricity',
+      'event_stand_configs.has_water',
+      'event_stand_configs.has_internet',
+    ]);
+
+    $items->join('stand_types', 'stand_types.id', '=', 'event_stand_configs.stand_type_id');
+
+    $items->where('event_stand_configs.is_active', true)->
+      where('event_stand_configs.stand_type_id', $offer->stand_type_id);
+
+    return $items->get();
+  }
 }

@@ -103,4 +103,19 @@ class EventStandConfigController extends Controller {
       return $this->rsp(500, null, $err);
     }
   }
+
+  /**
+   * ===========================================
+   * CRUD Suppliers
+   * ===========================================
+   */
+  public function supplierIndex(Request $request) {
+    try {
+      return $this->rsp(200, 'Registros retornados correctamente', [
+        'items' => EventStandConfig::getSuplierItems($request),
+      ]);
+    } catch (Throwable $err) {
+      return $this->rsp(500, null, $err);
+    }
+  }
 }

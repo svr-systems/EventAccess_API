@@ -87,6 +87,8 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('/stand_requests', StandRequestController::class);
         Route::patch('/stand_requests/{id}/activate', [StandRequestController::class, 'activate']);
 
+        Route::get('/event_stand_configs', [EventStandConfigController::class, 'supplierIndex']);
+
         Route::apiResource('/offers', OfferController::class);
         Route::patch('/offers/{id}/activate', [OfferController::class, 'activate']);
 
