@@ -11,6 +11,7 @@ use App\Http\Controllers\OfferController;
 use App\Http\Controllers\PresentationDateController;
 use App\Http\Controllers\PresentationTicketController;
 use App\Http\Controllers\SaleController;
+use App\Http\Controllers\StandRequestController;
 use App\Http\Controllers\StandTypeController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\SupplierUserController;
@@ -78,6 +79,9 @@ Route::prefix('v1')->group(function () {
   Route::group(['middleware' => 'auth:api'], function () {
     Route::middleware([EnsureUserIsSupplier::class])->group(function () {
       Route::prefix('suppliers')->group(function () {
+
+        Route::apiResource('/stand_requests', StandRequestController::class);
+        Route::patch('/stand_requests/{id}/activate', [StandRequestController::class, 'activate']);
 
         Route::apiResource('/offers', OfferController::class);
         Route::patch('/offers/{id}/activate', [OfferController::class, 'activate']);
