@@ -128,6 +128,10 @@ Route::prefix('v1')->group(function () {
     Route::middleware([EnsureUserIsCompany::class])->group(function () {
       Route::prefix('company')->group(function () {
 
+        Route::get('/events/stand_requests', [StandRequestController::class, 'companyIndex']);
+        Route::get('/events/stand_requests/{id}', [StandRequestController::class, 'companyShow']);
+        Route::post('/events/stand_requests/{id}/approved', [StandRequestController::class, 'setApproved']);
+
         Route::apiResource('/events/event_stand_configs', EventStandConfigController::class);
         Route::patch('/events/event_stand_configs/{id}/activate', [EventStandConfigController::class, 'activate']);
 

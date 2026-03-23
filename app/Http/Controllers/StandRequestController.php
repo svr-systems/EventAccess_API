@@ -99,4 +99,63 @@ class StandRequestController extends Controller {
       return $this->rsp(500, null, $err);
     }
   }
+
+  /**
+   * ===========================================
+   * CRUD COMPANY
+   * ===========================================
+   */
+  public function companyIndex(Request $request) {
+    try {
+      return $this->rsp(200, 'Registros retornados correctamente', [
+        'items' => StandRequest::getCompanyItems($request),
+      ]);
+    } catch (Throwable $err) {
+      return $this->rsp(500, null, $err);
+    }
+  }
+
+  public function companyShow(string $id, Request $request) {
+    try {
+      $item = StandRequest::getCompanyItem($id, $request);
+
+      if (is_null($item)) {
+        return $this->rsp(404, 'Registro no encontrado');
+      }
+
+      return $this->rsp(200, 'Registro retornado correctamente', [
+        'item' => $item,
+      ]);
+    } catch (Throwable $err) {
+      return $this->rsp(500, null, $err);
+    }
+  }
+
+  public function setApproved(?string $id, Request $request) {
+    DB::beginTransaction();
+    try {
+      $valid = StandRequest::validDataApproved($request->all());
+      if ($valid->fails()) {
+        DB::rollBack();
+        return $this->rsp(422, $valid->errors()->first(), null, $valid->errors()->toArray());
+      }
+      
+      $item = StandRequest::find((int) $id);
+
+      $payload = $request->all();
+
+      $item = StandRequest::setApproved($item, $payload);
+
+      DB::commit();
+
+      return $this->rsp(
+        200,
+        'Registro actualizado correctamente',
+        null
+      );
+    } catch (Throwable $err) {
+      DB::rollBack();
+      return $this->rsp(500, null, $err);
+    }
+  }
 }

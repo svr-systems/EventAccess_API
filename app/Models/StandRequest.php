@@ -42,6 +42,14 @@ class StandRequest extends Model {
     return $this->belongsTo(User::class, 'updated_by_id');
   }
 
+  public function offer(): BelongsTo {
+    return $this->belongsTo(Offer::class, 'offer_id');
+  }
+
+  public function stand_type_id(): BelongsTo {
+    return $this->belongsTo(StandType::class, 'stand_type_id');
+  }
+
   /**
    * ===========================================
    * ACCESSORES
@@ -131,8 +139,6 @@ class StandRequest extends Model {
           }
         }
       ],
-
-      'notes' => ['nullable', 'string'],
     ];
 
     $msgs = [
@@ -151,8 +157,22 @@ class StandRequest extends Model {
       'supplier_id.required' => 'El proveedor es obligatorio.',
       'supplier_id.integer' => 'El proveedor debe ser un identificador válido.',
       'supplier_id.exists' => 'El proveedor seleccionado no existe.',
+    ];
 
+    return Validator::make($data, $rules, $msgs);
+  }
+
+  public static function validDataApproved(array $data) {
+    $rules = [
+      'notes' => ['required', 'string'],
+      'is_approved' => ['required', 'boolean'],
+    ];
+
+    $msgs = [
       'notes.string' => 'Las notas deben ser un texto válido.',
+
+      'is_approved.required' => 'La aprovación es obligatoria.',
+      'is_approved.boolean' => 'La aprovación debe ser boleano.',
     ];
 
     return Validator::make($data, $rules, $msgs);
@@ -217,6 +237,73 @@ class StandRequest extends Model {
     $item->event_stand_config_id = Input::toId(data_get($data, 'event_stand_config_id'));
     $item->offer_id = Input::toId(data_get($data, 'offer_id'));
     $item->supplier_id = Input::toId(data_get($data, 'supplier_id'));
+
+    $item->save();
+
+    return $item;
+  }
+
+  /**
+   * ===========================================
+   * CONSULTAS COMPANY
+   * ===========================================
+   */
+  public static function getCompanyItems(Request $request) {
+    $is_active = $request->query('is_active', 1);
+
+    $items = self::query();
+
+    $items->select([
+      'stand_requests.id',
+      'stand_requests.is_active',
+      'stand_requests.event_id',
+      'stand_requests.event_stand_config_id',
+      'stand_requests.offer_id',
+      'stand_requests.notes',
+      'stand_requests.is_approved',
+    ]);
+
+    $items->with([
+      'offer:id,description,stand_type_id',
+      'offer.stand_type:id,name'
+    ]);
+
+    $items->where('stand_requests.is_active', (bool) ((int) $is_active))->
+      where('stand_requests.event_id', $request->event_id)->
+      where('stand_requests.is_approved', $request->is_approved);
+
+    return $items->get();
+  }
+
+  public static function getCompanyItem($id, Request $request = null) {
+    $item = self::query();
+
+    $item->select(['stand_requests.*']);
+
+    $item->with([
+      'created_by:id,email,name,paternal_surname,maternal_surname',
+      'updated_by:id,email,name,paternal_surname,maternal_surname',
+      'offer:id,description,stand_type_id',
+      'offer.stand_type:id,name'
+    ]);
+
+    $item->whereKey((int) $id);
+
+    $item = $item->first();
+
+    if (is_null($item)) {
+      return null;
+    }
+
+    return $item;
+  }
+
+  /**
+   * ===========================================
+   * GUARDADO DE DATOS COMPANY
+   * ===========================================
+   */
+  public static function setApproved(self $item, array $data): self {
     $item->notes = Input::toUpper(data_get($data, 'notes'));
     $item->is_approved = Input::toBool(data_get($data, 'is_approved'));
 
