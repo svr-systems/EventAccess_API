@@ -205,4 +205,50 @@ class StandAllocation extends Model {
 
     return $item;
   }
+
+  /**
+   * ===========================================
+   * CONSULTAS COMPANY
+   * ===========================================
+   */
+  public static function getCompanyItems(Request $request) {
+
+    $items = self::query();
+
+    $items->select([
+      'stand_allocations.id',
+      'stand_allocations.is_active',
+      'stand_allocations.stand_request_id',
+      'stand_allocations.event_id',
+      'stand_allocations.supplier_id',
+      'stand_allocations.event_stand_config_id',
+      'stand_allocations.is_paid',
+    ]);
+
+    $items->where('stand_allocations.is_active', 1)->
+      where('stand_allocations.event_id', $request->event_id);
+
+    return $items->get();
+  }
+
+  public static function getCompanyItem($id, Request $request = null) {
+    $item = self::query();
+
+    $item->select(['stand_allocations.*']);
+
+    $item->with([
+      'created_by:id,email,name,paternal_surname,maternal_surname',
+      'updated_by:id,email,name,paternal_surname,maternal_surname',
+    ]);
+
+    $item->whereKey((int) $id);
+
+    $item = $item->first();
+
+    if (is_null($item)) {
+      return null;
+    }
+
+    return $item;
+  }
 }

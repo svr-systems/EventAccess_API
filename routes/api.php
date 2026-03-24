@@ -81,8 +81,11 @@ Route::prefix('v1')->group(function () {
     Route::middleware([EnsureUserIsSupplier::class])->group(function () {
       Route::prefix('suppliers')->group(function () {
 
-        Route::apiResource('/stand_allocations', StandAllocationController::class);
-        Route::patch('/stand_allocations/{id}/activate', [StandAllocationController::class, 'activate']);
+        Route::get('/stand_allocations', [StandAllocationController::class, 'index']);
+        Route::get('/stand_allocations/{id}', [StandAllocationController::class, 'show']);
+
+        // Route::apiResource('/stand_allocations', StandAllocationController::class);
+        // Route::patch('/stand_allocations/{id}/activate', [StandAllocationController::class, 'activate']);
 
         Route::apiResource('/stand_requests', StandRequestController::class);
         Route::patch('/stand_requests/{id}/activate', [StandRequestController::class, 'activate']);
@@ -127,6 +130,9 @@ Route::prefix('v1')->group(function () {
   Route::group(['middleware' => 'auth:api'], function () {
     Route::middleware([EnsureUserIsCompany::class])->group(function () {
       Route::prefix('company')->group(function () {
+        
+        Route::get('/stand_allocations', [StandAllocationController::class, 'companyIndex']);
+        Route::get('/stand_allocations/{id}', [StandAllocationController::class, 'companyShow']);
 
         Route::get('/events/stand_requests', [StandRequestController::class, 'companyIndex']);
         Route::get('/events/stand_requests/{id}', [StandRequestController::class, 'companyShow']);
