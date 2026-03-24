@@ -192,4 +192,30 @@ class PresentationDate extends Model {
 
     return $items->get();
   }
+
+  /**
+   * ===========================================
+   * CONSULTAS BUYERS
+   * ===========================================
+   */
+  public static function getBuyersItems(Request $request) {
+    $is_active = $request->query('is_active', 1);
+
+    $items = self::query();
+
+    $items->select([
+      'presentation_dates.id',
+      'presentation_dates.is_active',
+      'presentation_dates.event_id',
+      'presentation_dates.date',
+      'presentation_dates.reception_time',
+      'presentation_dates.start_time',
+      'presentation_dates.end_time',
+    ]);
+
+    $items->where('presentation_dates.is_active', (bool) ((int) $is_active))->
+      where('event_id', $request->event_id);
+
+    return $items->get();
+  }
 }
