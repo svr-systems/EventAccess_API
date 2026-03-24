@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BuyerUserController;
 use App\Http\Controllers\CatalogController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\CompanyUserController;
@@ -45,6 +46,8 @@ Route::prefix('v1')->group(function () {
       Route::get('/presentation_tickets', [PresentationTicketController::class, 'publicIndex']);
       Route::post('/sale', [SaleController::class, 'store']);
     });
+
+    Route::post('buyers', [BuyerUserController::class, 'publicStore']);
 
     Route::post('suppliers', [SupplierUserController::class, 'publicStore']);
 

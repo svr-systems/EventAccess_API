@@ -3,9 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\HasActiveToggle;
-use App\Models\EventSupplier;
-use App\Models\Supplier;
-use App\Models\SupplierUser;
+use App\Models\Buyer;
+use App\Models\BuyerUser;
+use App\Models\EventBuyer;
 use App\Models\User;
 use App\Services\EmailService;
 use App\Support\Input;
@@ -13,7 +13,8 @@ use DB;
 use Illuminate\Http\Request;
 use Throwable;
 
-class SupplierUserController extends Controller {
+class BuyerUserController extends Controller
+{
   use HasActiveToggle;
 
   /**
@@ -24,7 +25,7 @@ class SupplierUserController extends Controller {
   public function index(Request $request) {
     try {
       return $this->rsp(200, 'Registros retornados correctamente', [
-        'items' => SupplierUser::getItems($request),
+        'items' => BuyerUser::getItems($request),
       ]);
     } catch (Throwable $err) {
       return $this->rsp(500, null, $err);
@@ -33,7 +34,7 @@ class SupplierUserController extends Controller {
 
   public function show(string $id, Request $request) {
     try {
-      $item = SupplierUser::getItem($id, $request);
+      $item = BuyerUser::getItem($id, $request);
 
       if (is_null($item)) {
         return $this->rsp(404, 'Registro no encontrado');
@@ -56,11 +57,11 @@ class SupplierUserController extends Controller {
   }
 
   public function destroy(string $id, Request $request) {
-    return $this->setActive(SupplierUser::class, $id, $request, false);
+    return $this->setActive(BuyerUser::class, $id, $request, false);
   }
 
   public function activate(string $id, Request $request) {
-    return $this->setActive(SupplierUser::class, $id, $request, true);
+    return $this->setActive(BuyerUser::class, $id, $request, true);
   }
 
   protected function storeUpdate(?string $id, Request $request) {
@@ -70,7 +71,7 @@ class SupplierUserController extends Controller {
       // $user = json_encode($request->user);
       // $user_data = json_decode($user);
       $user_data = json_decode($request->user);
-      $user_data->role_id = 6;
+      $user_data->role_id = 8;
 
       $email = Input::toLower($user_data->email);
 
@@ -88,7 +89,7 @@ class SupplierUserController extends Controller {
 
       $store_mode = is_null($id);
 
-      $valid = SupplierUser::validData($request->all());
+      $valid = BuyerUser::validData($request->all());
       if ($valid->fails()) {
         DB::rollBack();
         return $this->rsp(422, $valid->errors()->first(), null, $valid->errors()->toArray());
@@ -97,13 +98,13 @@ class SupplierUserController extends Controller {
       $email_current = null;
 
       if ($store_mode) {
-        $item = new SupplierUser();
+        $item = new BuyerUser();
 
         $user = new User();
         $user->created_by_id = $request->user()->id;
         $user->updated_by_id = $request->user()->id;
       } else {
-        $item = SupplierUser::find((int) $id);
+        $item = BuyerUser::find((int) $id);
 
         if (is_null($item)) {
           DB::rollBack();
@@ -121,9 +122,9 @@ class SupplierUserController extends Controller {
       $user = User::saveData($user, $payload);
 
       $payload = [];
-      $payload['supplier_id'] = $request->supplier_id;
+      $payload['buyer_id'] = $request->buyer_id;
       $payload['user_id'] = $user->id;
-      $item = SupplierUser::saveData($item, $payload);
+      $item = BuyerUser::saveData($item, $payload);
 
       $must_confirm = $store_mode || (!is_null($email_current) && $email_current !== $item->email);
 
@@ -163,9 +164,9 @@ class SupplierUserController extends Controller {
     DB::beginTransaction();
 
     try {
-      // $user = json_encode($request->user);
-      // $user_data = json_decode($user);
-      $user_data = json_decode($request->user);
+      $user = json_encode($request->user);
+      $user_data = json_decode($user);
+      // $user_data = json_decode($request->user);
       $user_data->role_id = 6;
 
       $email = Input::toLower($user_data->email);
@@ -182,13 +183,13 @@ class SupplierUserController extends Controller {
         return $this->rsp(422, $valid->errors()->first(), null, $valid->errors()->toArray());
       }
 
-      // $valid = SupplierUser::validData($request->all());
+      // $valid = BuyerUser::validData($request->all());
       // if ($valid->fails()) {
       //   DB::rollBack();
       //   return $this->rsp(422, $valid->errors()->first(), null, $valid->errors()->toArray());
       // }
 
-      $item = new SupplierUser();
+      $item = new BuyerUser();
 
       $user = new User();
       $user->created_by_id = null;
@@ -205,28 +206,28 @@ class SupplierUserController extends Controller {
 
       $user = User::saveData($user, $payload);
 
-      // $supplier = json_encode($request->supplier);
-      // $supplier_data = (array) json_decode($supplier);
-      $supplier_data = (array) json_decode($request->supplier);
+      $buyer = json_encode($request->buyer);
+      $buyer_data = (array) json_decode($buyer);
+      // $buyer_data = (array) json_decode($request->buyer);
 
-      $supplier = new Supplier;
-      $supplier->created_by_id = $user->id;
-      $supplier->updated_by_id = $user->id;
-      $supplier = Supplier::saveData($supplier, $supplier_data);
+      $buyer = new Buyer;
+      $buyer->created_by_id = $user->id;
+      $buyer->updated_by_id = $user->id;
+      $buyer = Buyer::saveData($buyer, $buyer_data);
 
       $payload = [];
-      $payload['supplier_id'] = $supplier->id;
+      $payload['buyer_id'] = $buyer->id;
       $payload['user_id'] = $user->id;
-      $item = new SupplierUser;
-      $item = SupplierUser::saveData($item, $payload);
+      $item = new BuyerUser;
+      $item = BuyerUser::saveData($item, $payload);
 
       $payload = [];
-      $payload['supplier_id'] = $supplier->id;
+      $payload['buyer_id'] = $buyer->id;
       $payload['event_id'] = $request->event_id;
-      $event_supplier = new EventSupplier;
-      $event_supplier->created_by_id = $user->id;
-      $event_supplier->updated_by_id = $user->id;
-      $event_supplier = EventSupplier::saveData($event_supplier, $payload);
+      $event_buyer = new EventBuyer;
+      $event_buyer->created_by_id = $user->id;
+      $event_buyer->updated_by_id = $user->id;
+      $event_buyer = EventBuyer::saveData($event_buyer, $payload);
 
 
       $user->email_verified_at = null;
