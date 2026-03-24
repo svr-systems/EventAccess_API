@@ -8,6 +8,7 @@ use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\CompanyUserController;
 use App\Http\Controllers\EventBuyerController;
 use App\Http\Controllers\EventController;
+use App\Http\Controllers\EventMeetingWindowController;
 use App\Http\Controllers\EventStandConfigController;
 use App\Http\Controllers\EventSupplierController;
 use App\Http\Controllers\OfferController;
@@ -156,6 +157,9 @@ Route::prefix('v1')->group(function () {
   Route::group(['middleware' => 'auth:api'], function () {
     Route::middleware([EnsureUserIsCompany::class])->group(function () {
       Route::prefix('company')->group(function () {
+
+        Route::apiResource('/events/meeting_windows', EventMeetingWindowController::class);
+        Route::patch('/events/meeting_windows/{id}/activate', [EventMeetingWindowController::class, 'activate']);
         
         Route::get('/stand_allocations', [StandAllocationController::class, 'companyIndex']);
         Route::get('/stand_allocations/{id}', [StandAllocationController::class, 'companyShow']);
