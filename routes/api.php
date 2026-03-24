@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BuyerController;
 use App\Http\Controllers\BuyerUserController;
+use App\Http\Controllers\BuyerUserScheduleController;
 use App\Http\Controllers\CatalogController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\CompanyUserController;
@@ -87,6 +88,13 @@ Route::prefix('v1')->group(function () {
   Route::group(['middleware' => 'auth:api'], function () {
     Route::middleware([EnsureUserIsBuyer::class])->group(function () {
       Route::prefix('buyers')->group(function () {
+
+        Route::apiResource('/user_schedules', BuyerUserScheduleController::class);
+        Route::patch('/user_schedules/{id}/activate', [BuyerUserScheduleController::class, 'activate']);
+      
+        Route::get('/events/meeting_windows', [EventMeetingWindowController::class, 'buyersIndex']);
+      
+        Route::get('/events/presentation_dates', [PresentationDateController::class, 'buyersIndex']);
 
         Route::apiResource('/users', BuyerUserController::class);
         Route::patch('/users/{id}/activate', [BuyerUserController::class, 'activate']);
