@@ -1,10 +1,12 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BuyerController;
 use App\Http\Controllers\BuyerUserController;
 use App\Http\Controllers\CatalogController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\CompanyUserController;
+use App\Http\Controllers\EventBuyerController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\EventStandConfigController;
 use App\Http\Controllers\EventSupplierController;
@@ -21,6 +23,7 @@ use App\Http\Controllers\TicketCheckinController;
 use App\Http\Controllers\TicketTypeController;
 use App\Http\Controllers\UserController;
 use App\Http\Middleware\EnsureUserIsAdmin;
+use App\Http\Middleware\EnsureUserIsBuyer;
 use App\Http\Middleware\EnsureUserIsCompany;
 use App\Http\Middleware\EnsureUserIsStaff;
 use App\Http\Middleware\EnsureUserIsSupplier;
@@ -74,6 +77,26 @@ Route::prefix('v1')->group(function () {
     });
 
     Route::get('catalogs/{catalog}', [CatalogController::class, 'publicIndex']);
+  });
+
+
+  // -------------------------
+  // BUYERS
+  // -------------------------
+  Route::group(['middleware' => 'auth:api'], function () {
+    Route::middleware([EnsureUserIsBuyer::class])->group(function () {
+      Route::prefix('buyers')->group(function () {
+
+        Route::apiResource('/users', BuyerUserController::class);
+        Route::patch('/users/{id}/activate', [BuyerUserController::class, 'activate']);
+
+        Route::apiResource('/buyer', BuyerController::class);
+        Route::patch('/buyer/{id}/activate', [BuyerController::class, 'activate']);
+
+        Route::get('/events/buyer', [EventBuyerController::class, 'index']);
+
+      });
+    });
   });
 
 

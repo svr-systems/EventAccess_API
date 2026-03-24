@@ -68,9 +68,9 @@ class BuyerUserController extends Controller
     DB::beginTransaction();
 
     try {
-      // $user = json_encode($request->user);
-      // $user_data = json_decode($user);
-      $user_data = json_decode($request->user);
+      $user = json_encode($request->user);
+      $user_data = json_decode($user);
+      // $user_data = json_decode($request->user);
       $user_data->role_id = 8;
 
       $email = Input::toLower($user_data->email);
@@ -81,7 +81,7 @@ class BuyerUserController extends Controller
         return $this->rsp(422, $valid->errors()->first(), null, $valid->errors()->toArray());
       }
 
-      $valid = User::validData((array) $user_data, '6');
+      $valid = User::validData((array) $user_data, '8');
       if ($valid->fails()) {
         DB::rollBack();
         return $this->rsp(422, $valid->errors()->first(), null, $valid->errors()->toArray());
@@ -164,10 +164,10 @@ class BuyerUserController extends Controller
     DB::beginTransaction();
 
     try {
-      $user = json_encode($request->user);
-      $user_data = json_decode($user);
-      // $user_data = json_decode($request->user);
-      $user_data->role_id = 6;
+      // $user = json_encode($request->user);
+      // $user_data = json_decode($user);
+      $user_data = json_decode($request->user);
+      $user_data->role_id = 8;
 
       $email = Input::toLower($user_data->email);
 
@@ -177,7 +177,7 @@ class BuyerUserController extends Controller
         return $this->rsp(422, $valid->errors()->first(), null, $valid->errors()->toArray());
       }
 
-      $valid = User::validData((array) $user_data, '6');
+      $valid = User::validData((array) $user_data, '8');
       if ($valid->fails()) {
         DB::rollBack();
         return $this->rsp(422, $valid->errors()->first(), null, $valid->errors()->toArray());
@@ -206,9 +206,9 @@ class BuyerUserController extends Controller
 
       $user = User::saveData($user, $payload);
 
-      $buyer = json_encode($request->buyer);
-      $buyer_data = (array) json_decode($buyer);
-      // $buyer_data = (array) json_decode($request->buyer);
+      // $buyer = json_encode($request->buyer);
+      // $buyer_data = (array) json_decode($buyer);
+      $buyer_data = (array) json_decode($request->buyer);
 
       $buyer = new Buyer;
       $buyer->created_by_id = $user->id;

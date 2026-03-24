@@ -56,34 +56,12 @@ class BuyerUser extends Model {
         'integer',
         'exists:buyers,id',
       ],
-
-      'user_id' => [
-        'required',
-        'integer',
-        'exists:users,id',
-        function ($attribute, $value, $fail) use ($data) {
-
-          // 🔥 Evitar duplicados manualmente (además del unique)
-          $exists = DB::table('buyer_users')
-            ->where('buyer_id', $data['buyer_id'] ?? null)
-            ->where('user_id', $value)
-            ->exists();
-
-          if ($exists) {
-            $fail('Este usuario ya está asignado a este comprador.');
-          }
-        }
-      ],
     ];
 
     $msgs = [
       'buyer_id.required' => 'El comprador es obligatorio.',
       'buyer_id.integer' => 'El comprador debe ser un identificador válido.',
       'buyer_id.exists' => 'El comprador seleccionado no existe.',
-
-      'user_id.required' => 'El usuario es obligatorio.',
-      'user_id.integer' => 'El usuario debe ser un identificador válido.',
-      'user_id.exists' => 'El usuario seleccionado no existe.',
     ];
 
     return Validator::make($data, $rules, $msgs);
