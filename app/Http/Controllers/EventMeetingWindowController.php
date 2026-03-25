@@ -8,8 +8,7 @@ use DB;
 use Illuminate\Http\Request;
 use Throwable;
 
-class EventMeetingWindowController extends Controller
-{
+class EventMeetingWindowController extends Controller {
   use HasActiveToggle;
 
   /**
@@ -96,6 +95,21 @@ class EventMeetingWindowController extends Controller
       );
     } catch (Throwable $err) {
       DB::rollBack();
+      return $this->rsp(500, null, $err);
+    }
+  }
+
+  /**
+   * ===========================================
+   * CRUD BUYER USERS SCHEDULES
+   * ===========================================
+   */
+  public function buyersIndex(Request $request) {
+    try {
+      return $this->rsp(200, 'Registros retornados correctamente', [
+        'items' => EventMeetingWindow::getBuyersItems($request),
+      ]);
+    } catch (Throwable $err) {
       return $this->rsp(500, null, $err);
     }
   }
