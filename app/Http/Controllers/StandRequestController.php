@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\HasActiveToggle;
+use App\Models\EventStandConfig;
 use App\Models\StandRequest;
 use DB;
 use Illuminate\Http\Request;
@@ -70,7 +71,6 @@ class StandRequestController extends Controller {
         return $this->rsp(422, $valid->errors()->first(), null, $valid->errors()->toArray());
       }
 
-
       if ($store_mode) {
         $item = new StandRequest();
       } else {
@@ -83,7 +83,52 @@ class StandRequestController extends Controller {
       }
 
       $payload = $request->all();
-      $payload['logo_doc'] = $request->file('logo_doc');
+
+      // Solo validar cupo cuando se crea
+      // o cuando en edición cambia la configuración del stand
+      $must_validate_capacity =
+        $store_mode ||
+        (
+          isset($payload['event_stand_config_id']) &&
+          (int) $payload['event_stand_config_id'] !== (int) $item->event_stand_config_id
+        );
+
+      if ($must_validate_capacity) {
+        $config = EventStandConfig::where('id', (int) $payload['event_stand_config_id'])
+          ->lockForUpdate()
+          ->first();
+
+        if (is_null($config)) {
+          DB::rollBack();
+          return $this->rsp(404, 'Configuración de stand no encontrada');
+        }
+
+        $occupied_query = StandRequest::where('event_stand_config_id', $config->id)
+          ->where('is_active', true)
+          ->where(function ($q) {
+            $q->whereNull('is_approved')
+              ->orWhere('is_approved', true);
+          });
+
+        // Si es edición, ignorar el mismo registro
+        if (!$store_mode) {
+          $occupied_query->where('id', '!=', (int) $item->id);
+        }
+
+        $occupied = $occupied_query
+          ->lockForUpdate()
+          ->count();
+
+        if ($occupied >= $config->capacity) {
+          DB::rollBack();
+          return $this->rsp(
+            422,
+            'Ya no hay lugares disponibles para esta configuración de stand.',
+            null,
+            ['event_stand_config_id' => ['Ya no hay lugares disponibles para esta configuración de stand.']]
+          );
+        }
+      }
 
       $item = StandRequest::saveData($item, $payload);
 
@@ -139,7 +184,7 @@ class StandRequestController extends Controller {
         DB::rollBack();
         return $this->rsp(422, $valid->errors()->first(), null, $valid->errors()->toArray());
       }
-      
+
       $item = StandRequest::find((int) $id);
 
       $payload = $request->all();

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Support\DisplayId;
 use App\Support\Input;
+use DB;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Http\Request;
@@ -200,14 +201,26 @@ class EventStandConfig extends Model {
    * CONSULTAS SUPPLIER
    * ===========================================
    */
-  public static function getSuplierItems(Request $request) {
 
+  public static function getSuplierItems(Request $request) {
     $offer = Offer::find($request->offer_id);
 
-
-    if(!$offer)
+    if (!$offer) {
       return null;
-    
+    }
+
+    $occupiedSubquery = DB::table('stand_requests')
+      ->select([
+        'event_stand_config_id',
+        DB::raw('COUNT(*) as occupied'),
+      ])
+      ->where('is_active', true)
+      ->where(function ($q) {
+        $q->whereNull('is_approved')
+          ->orWhere('is_approved', true);
+      })
+      ->groupBy('event_stand_config_id');
+
     $items = self::query();
 
     $items->select([
@@ -222,12 +235,19 @@ class EventStandConfig extends Model {
       'event_stand_configs.has_electricity',
       'event_stand_configs.has_water',
       'event_stand_configs.has_internet',
+      DB::raw('COALESCE(sr.occupied, 0) as occupied'),
+      DB::raw('(event_stand_configs.capacity - COALESCE(sr.occupied, 0)) as available'),
     ]);
 
     $items->join('stand_types', 'stand_types.id', '=', 'event_stand_configs.stand_type_id');
 
-    $items->where('event_stand_configs.is_active', true)->
-      where('event_stand_configs.stand_type_id', $offer->stand_type_id);
+    $items->leftJoinSub($occupiedSubquery, 'sr', function ($join) {
+      $join->on('sr.event_stand_config_id', '=', 'event_stand_configs.id');
+    });
+
+    $items->where('event_stand_configs.is_active', true)
+      ->where('event_stand_configs.stand_type_id', $offer->stand_type_id)
+      ->whereRaw('event_stand_configs.capacity > COALESCE(sr.occupied, 0)');
 
     return $items->get();
   }

@@ -75,14 +75,37 @@ class StandRequest extends Model {
         function ($attribute, $value, $fail) use ($data) {
 
           $exists = DB::table('event_stand_configs')
-            ->join('stand_types','stand_types.id','event_stand_configs.stand_type_id')
+            ->join('stand_types', 'stand_types.id', '=', 'event_stand_configs.stand_type_id')
             ->where('event_stand_configs.id', $value)
-            ->where('event_id', $data['event_id'] ?? null)
+            ->where('stand_types.event_id', $data['event_id'] ?? null)
             ->where('event_stand_configs.is_active', true)
             ->exists();
 
           if (!$exists) {
             $fail('La configuración del stand no pertenece al evento o no está activa.');
+            return;
+          }
+
+          // No permitir repetir solicitud si ya existe una pendiente o aprobada
+          if (!empty($data['supplier_id']) && !empty($data['event_id'])) {
+            $query = DB::table('stand_requests')
+              ->where('event_id', $data['event_id'])
+              ->where('supplier_id', $data['supplier_id'])
+              ->where('event_stand_config_id', $value)
+              ->where('is_active', true)
+              ->where(function ($q) {
+                $q->whereNull('is_approved')
+                  ->orWhere('is_approved', true);
+              });
+
+            // Ignorar el mismo registro en edición
+            if (!empty($data['id'])) {
+              $query->where('id', '!=', $data['id']);
+            }
+
+            if ($query->exists()) {
+              $fail('Ya existe una solicitud enviada para esta configuración de stand. Solo puedes volver a enviarla si la anterior fue rechazada.');
+            }
           }
         }
       ],
@@ -128,6 +151,7 @@ class StandRequest extends Model {
 
           if (!$exists) {
             $fail('El proveedor no está registrado o activo en este evento.');
+            return;
           }
 
           $offer = DB::table('offers')
