@@ -34,6 +34,10 @@ class SupplierUser extends Model {
     return $this->belongsTo(User::class);
   }
 
+  public function role(): BelongsTo {
+    return $this->belongsTo(Role::class,'role_id');
+  }
+
   /**
    * ===========================================
    * ACCESSORES
@@ -84,6 +88,7 @@ class SupplierUser extends Model {
 
     $items->with([
       'user',
+      "user.role:id,name"
     ]);
 
     return $items->get();
@@ -94,9 +99,9 @@ class SupplierUser extends Model {
 
     $item->select(['supplier_users.*']);
 
-    $item->with([
-      'user',
-    ]);
+    // $item->with([
+    //   'user',
+    // ]);
 
     $item->whereKey((int) $id);
 
@@ -105,6 +110,8 @@ class SupplierUser extends Model {
     if (is_null($item)) {
       return null;
     }
+
+    $item->user = User::getItem($item->user_id);
 
     return $item;
   }

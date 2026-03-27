@@ -30,6 +30,9 @@ class Event extends Model {
     'updated_at' => 'datetime:Y-m-d H:i:s',
     'sale_start_at' => 'datetime:Y-m-d',
     'sale_end_at' => 'datetime:Y-m-d',
+    'is_public' => 'boolean',
+    'has_stands' => 'boolean',
+    'has_buyers' => 'boolean',
   ];
 
   /**
@@ -259,6 +262,39 @@ class Event extends Model {
       'events.sale_end_at'
     ]);
 
-    return $items->get();
+    $items = $items->get();
+
+    foreach ($items as $key => $item) {
+
+      $item->logo_b64 = StorageMgrService::getBase64($item->logo_path, 'Event');
+      $item->logo_doc = null;
+
+      $item->flyer_b64 = StorageMgrService::getBase64($item->flyer_path, 'Event');
+      $item->flyer_doc = null;
+    }
+
+    return $items;
+  }
+
+  public static function getPublicItem($id, Request $request = null) {
+    $item = self::query();
+
+    $item->select(['events.*']);
+
+    $item->whereKey((int) $id);
+
+    $item = $item->first();
+
+    if (is_null($item)) {
+      return null;
+    }
+
+    $item->logo_b64 = StorageMgrService::getBase64($item->logo_path, 'Event');
+    $item->logo_doc = null;
+
+    $item->flyer_b64 = StorageMgrService::getBase64($item->flyer_path, 'Event');
+    $item->flyer_doc = null;
+
+    return $item;
   }
 }

@@ -86,10 +86,10 @@ class Buyer extends Model {
     $items->where('buyers.is_active', (bool) ((int) $is_active));
 
 
-    if ($request->user()->role_id === 3 || $request->user()->role_id === 4) {
+    // if ($request->user()->role_id === 3 || $request->user()->role_id === 4) {
       $items->join('buyer_users', 'buyer_users.buyer_id', 'buyers.id');
       $items->where('buyer_users.user_id', $request->user()->id);
-    }
+    // }
 
     return $items->get();
   }

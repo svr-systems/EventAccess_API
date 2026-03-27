@@ -39,6 +39,10 @@ class CompanyUser extends Model {
     return $this->belongsTo(User::class);
   }
 
+  public function role(): BelongsTo {
+    return $this->belongsTo(Role::class,'role_id');
+  }
+
   /**
    * ===========================================
    * ACCESSORES
@@ -90,6 +94,7 @@ class CompanyUser extends Model {
 
     $items->with([
       'user',
+      "user.role:id,name"
     ]);
 
     return $items->get();
@@ -100,9 +105,9 @@ class CompanyUser extends Model {
 
     $item->select(['company_users.*']);
 
-    $item->with([
-      'user',
-    ]);
+    // $item->with([
+    //   'user',
+    // ]);
 
     $item->whereKey((int) $id);
 
@@ -111,6 +116,8 @@ class CompanyUser extends Model {
     if (is_null($item)) {
       return null;
     }
+
+    $item->user = User::getItem($item->user_id);
 
     return $item;
   }

@@ -20,7 +20,7 @@ class Role extends Model {
       'roles.name',
     ]);
 
-    $items->whereIn('roles.id', [1, 2, 3]);
+    $items->whereIn('roles.id', [1, 2]);
 
     $items->orderBy('roles.name');
 

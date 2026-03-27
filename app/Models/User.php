@@ -194,6 +194,8 @@ class User extends Authenticatable
 
     $items->with(['role:id,name']);
 
+    $items->whereIn('users.role_id', [1, 2]);
+
     if ($is_active !== null && $is_active !== '') {
       $items->where('users.is_active', (bool) ((int) $is_active));
     }

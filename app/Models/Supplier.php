@@ -86,10 +86,10 @@ class Supplier extends Model {
     $items->where('suppliers.is_active', (bool) ((int) $is_active));
 
 
-    if ($request->user()->role_id === 3 || $request->user()->role_id === 4) {
+    // if ($request->user()->role_id === 3 || $request->user()->role_id === 4) {
       $items->join('supplier_users', 'supplier_users.supplier_id', 'suppliers.id');
       $items->where('supplier_users.user_id', $request->user()->id);
-    }
+    // }
 
     return $items->get();
   }

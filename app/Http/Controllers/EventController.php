@@ -118,4 +118,13 @@ class EventController extends Controller {
       return $this->rsp(500, null, $err);
     }
   }
+  public function publicShow($id) {
+    try {
+      return $this->rsp(200, 'Registros retornados correctamente', [
+        'item' => Event::getPublicItem($id),
+      ]);
+    } catch (Throwable $err) {
+      return $this->rsp(500, null, $err);
+    }
+  }
 }

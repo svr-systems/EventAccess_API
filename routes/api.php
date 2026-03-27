@@ -48,6 +48,7 @@ Route::prefix('v1')->group(function () {
     Route::prefix('events')->group(function () {
       Route::get('/', [EventController::class, 'publicIndex']);
       Route::get('/presentation_dates', [PresentationDateController::class, 'publicIndex']);
+      Route::get('/{id}', [EventController::class, 'publicShow']);
       Route::get('/presentation_tickets', [PresentationTicketController::class, 'publicIndex']);
       Route::post('/sale', [SaleController::class, 'store']);
     });
@@ -91,9 +92,9 @@ Route::prefix('v1')->group(function () {
 
         Route::apiResource('/user_schedules', BuyerUserScheduleController::class);
         Route::patch('/user_schedules/{id}/activate', [BuyerUserScheduleController::class, 'activate']);
-      
+
         Route::get('/events/meeting_windows', [EventMeetingWindowController::class, 'buyersIndex']);
-      
+
         Route::get('/events/presentation_dates', [PresentationDateController::class, 'buyersIndex']);
 
         Route::apiResource('/users', BuyerUserController::class);
@@ -168,7 +169,7 @@ Route::prefix('v1')->group(function () {
 
         Route::apiResource('/events/meeting_windows', EventMeetingWindowController::class);
         Route::patch('/events/meeting_windows/{id}/activate', [EventMeetingWindowController::class, 'activate']);
-        
+
         Route::get('/stand_allocations', [StandAllocationController::class, 'companyIndex']);
         Route::get('/stand_allocations/{id}', [StandAllocationController::class, 'companyShow']);
 
@@ -210,11 +211,6 @@ Route::prefix('v1')->group(function () {
   // -------------------------
   Route::middleware(['auth:api'])->group(function () {
     Route::middleware([EnsureUserIsAdmin::class])->group(function () {
-
-      Route::prefix('auth')->group(function () {
-        Route::post('logout', [AuthController::class, 'logout']);
-      });
-
       Route::apiResource('companies/users', CompanyUserController::class);
       Route::patch('companies/users/{id}/activate', [CompanyUserController::class, 'activate']);
 
@@ -227,4 +223,15 @@ Route::prefix('v1')->group(function () {
       Route::get('catalogs/{catalog}', [CatalogController::class, 'index']);
     });
   });
+
+
+  // -------------------------
+  // GENERAL LOGOUT
+  // -------------------------
+  Route::group(['middleware' => 'auth:api'], function () {
+    Route::prefix('auth')->group(function () {
+      Route::post('logout', [AuthController::class, 'logout']);
+    });
+  });
+
 });

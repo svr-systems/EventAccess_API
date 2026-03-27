@@ -20,6 +20,9 @@ class EventStandConfig extends Model {
     'is_active' => 'boolean',
     'created_at' => 'datetime:Y-m-d H:i:s',
     'updated_at' => 'datetime:Y-m-d H:i:s',
+    'has_electricity' => 'boolean',
+    'has_water' => 'boolean',
+    'has_internet' => 'boolean',
   ];
 
   /**

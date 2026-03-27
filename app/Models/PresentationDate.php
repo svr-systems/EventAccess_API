@@ -46,10 +46,9 @@ class PresentationDate extends Model {
   public function updated_by(): BelongsTo {
     return $this->belongsTo(User::class, 'updated_by_id');
   }
-  public function event()
-{
-    return $this->belongsTo(Event::class);
-}
+  public function event() {
+    return $this->belongsTo(Event::class, 'event_id');
+  }
 
   /**
    * ===========================================
@@ -176,6 +175,10 @@ class PresentationDate extends Model {
       '=',
       'presentation_dates.id'
     );
+
+    $items->with([
+      'event:id,has_stands,has_buyers'
+    ]);
 
     $items->where('presentation_dates.is_active', (bool) ((int) $is_active))
       ->where('presentation_dates.event_id', $request->event_id);
