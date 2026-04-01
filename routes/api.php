@@ -48,9 +48,9 @@ Route::prefix('v1')->group(function () {
     Route::prefix('events')->group(function () {
       Route::get('/', [EventController::class, 'publicIndex']);
       Route::get('/presentation_dates', [PresentationDateController::class, 'publicIndex']);
-      Route::get('/{id}', [EventController::class, 'publicShow']);
       Route::get('/presentation_tickets', [PresentationTicketController::class, 'publicIndex']);
       Route::post('/sale', [SaleController::class, 'store']);
+      Route::get('/{id}', [EventController::class, 'publicShow']);
     });
 
     Route::post('buyers', [BuyerUserController::class, 'publicStore']);

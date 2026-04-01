@@ -155,7 +155,6 @@ class PresentationTicket extends Model {
    * ===========================================
    */
   public static function publicGetItems(Request $request) {
-    $is_active = $request->query('is_active', 1);
 
     $items = self::query();
 
@@ -173,7 +172,7 @@ class PresentationTicket extends Model {
       'ticket_type:id,name,description'
     ]);
 
-    $items->where('presentation_tickets.is_active', (bool) ((int) $is_active))->
+    $items->where('presentation_tickets.is_active',1)->
       where('presentation_date_id', $request->presentation_date_id);
 
     return $items->get();
