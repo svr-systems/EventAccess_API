@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Concerns\HasActiveToggle;
 use App\Models\EventSupplier;
 use App\Models\Supplier;
+use App\Models\SupplierCertification;
 use App\Models\SupplierUser;
 use App\Models\User;
 use App\Services\EmailService;
@@ -182,11 +183,11 @@ class SupplierUserController extends Controller {
         return $this->rsp(422, $valid->errors()->first(), null, $valid->errors()->toArray());
       }
 
-      $valid = SupplierUser::validData($request->all());
-      if ($valid->fails()) {
-        DB::rollBack();
-        return $this->rsp(422, $valid->errors()->first(), null, $valid->errors()->toArray());
-      }
+      // $valid = SupplierUser::validData($request->all());
+      // if ($valid->fails()) {
+      //   DB::rollBack();
+      //   return $this->rsp(422, $valid->errors()->first(), null, $valid->errors()->toArray());
+      // }
 
       $item = new SupplierUser();
 
@@ -206,14 +207,30 @@ class SupplierUserController extends Controller {
       $user = User::saveData($user, $payload);
 
       // $supplier = json_encode($request->supplier);
-      // $supplier_data = (array) json_decode($supplier);
+      // $supplier_data = json_decode($supplier);
       $supplier_data = json_decode($request->supplier);
+      $supplier_certifications_data = $supplier_data->supplier_certifications;
       $supplier_data = (array) json_decode($request->supplier);
+      $payload['tax_certificate_doc'] = $request->file('tax_certificate_doc');
+      $payload['positive_opinion_doc'] = $request->file('positive_opinion_doc');
 
       $supplier = new Supplier;
       $supplier->created_by_id = $user->id;
       $supplier->updated_by_id = $user->id;
       $supplier = Supplier::saveData($supplier, $supplier_data);
+
+      foreach ($supplier_certifications_data as $key => $supplier_certification_data) {
+        $supplier_certification = SupplierCertification::find($supplier_certification_data->id);
+
+        if(!$supplier_certification){
+          $supplier_certification = new SupplierCertification;
+        }
+
+        $supplier_certification->is_active = $supplier_certification_data->is_active;
+        $supplier_certification->supplier_id = $supplier->id;
+        $supplier_certification->certification_id = $supplier_certification_data->certification_id;
+        $supplier_certification->save();
+      }
 
       $payload = [];
       $payload['supplier_id'] = $supplier->id;
@@ -228,7 +245,6 @@ class SupplierUserController extends Controller {
       $event_supplier->created_by_id = $user->id;
       $event_supplier->updated_by_id = $user->id;
       $event_supplier = EventSupplier::saveData($event_supplier, $payload);
-
 
       $user->email_verified_at = null;
       $user->save();
