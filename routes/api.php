@@ -44,6 +44,8 @@ Route::prefix('v1')->group(function () {
   // -------------------------
   Route::prefix('public')->group(function () {
 
+    Route::get('/catalogs/{catalog}', [CatalogController::class, 'index']);
+
 
     Route::prefix('events')->group(function () {
       Route::get('/', [EventController::class, 'publicIndex']);
@@ -116,6 +118,8 @@ Route::prefix('v1')->group(function () {
   Route::group(['middleware' => 'auth:api'], function () {
     Route::middleware([EnsureUserIsSupplier::class])->group(function () {
       Route::prefix('suppliers')->group(function () {
+
+        Route::get('/catalogs/{catalog}', [CatalogController::class, 'supplierIndex']);
 
         Route::get('/stand_allocations', [StandAllocationController::class, 'index']);
         Route::get('/stand_allocations/{id}', [StandAllocationController::class, 'show']);

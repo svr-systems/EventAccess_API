@@ -182,11 +182,11 @@ class SupplierUserController extends Controller {
         return $this->rsp(422, $valid->errors()->first(), null, $valid->errors()->toArray());
       }
 
-      // $valid = SupplierUser::validData($request->all());
-      // if ($valid->fails()) {
-      //   DB::rollBack();
-      //   return $this->rsp(422, $valid->errors()->first(), null, $valid->errors()->toArray());
-      // }
+      $valid = SupplierUser::validData($request->all());
+      if ($valid->fails()) {
+        DB::rollBack();
+        return $this->rsp(422, $valid->errors()->first(), null, $valid->errors()->toArray());
+      }
 
       $item = new SupplierUser();
 
@@ -207,6 +207,7 @@ class SupplierUserController extends Controller {
 
       // $supplier = json_encode($request->supplier);
       // $supplier_data = (array) json_decode($supplier);
+      $supplier_data = json_decode($request->supplier);
       $supplier_data = (array) json_decode($request->supplier);
 
       $supplier = new Supplier;
