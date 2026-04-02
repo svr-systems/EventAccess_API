@@ -7,6 +7,7 @@ use App\Support\DisplayId;
 use App\Support\Input;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Http\Request;
 use Validator;
 
@@ -37,6 +38,11 @@ class Supplier extends Model {
 
   public function updated_by(): BelongsTo {
     return $this->belongsTo(User::class, 'updated_by_id');
+  }
+
+  public function supplier_certifications(): HasMany {
+    return $this->hasMany(SupplierCertification::class, 'supplier_id')
+      ->where('is_active', true);
   }
 
   /**
@@ -153,6 +159,7 @@ class Supplier extends Model {
     $item->with([
       'created_by:id,email',
       'updated_by:id,email',
+      'supplier_certifications:id,supplier_id,is_active,certification_id'
     ]);
 
     $item->whereKey((int) $id);

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\HasActiveToggle;
 use App\Models\Supplier;
+use App\Models\SupplierCertification;
 use DB;
 use Illuminate\Http\Request;
 use Throwable;
@@ -87,9 +88,26 @@ class SupplierController extends Controller {
       }
 
       $payload = $request->all();
-      $payload['logo_doc'] = $request->file('logo_doc');
+      $payload['tax_certificate_doc'] = $request->file('tax_certificate_doc');
+      $payload['positive_opinion_doc'] = $request->file('positive_opinion_doc');
 
       $item = Supplier::saveData($item, $payload);
+
+      $supplier_certifications_data = json_encode($request->supplier_certifications);
+      $supplier_certifications_data = json_decode($supplier_certifications_data);
+
+      foreach ($supplier_certifications_data as $key => $supplier_certification_data) {
+        $supplier_certification = SupplierCertification::find($supplier_certification_data->id);
+
+        if(!$supplier_certification){
+          $supplier_certification = new SupplierCertification;
+        }
+
+        $supplier_certification->is_active = $supplier_certification_data->is_active;
+        $supplier_certification->supplier_id = $item->id;
+        $supplier_certification->certification_id = $supplier_certification_data->certification_id;
+        $supplier_certification->save();
+      }
 
       DB::commit();
 

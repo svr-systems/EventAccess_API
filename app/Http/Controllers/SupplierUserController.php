@@ -211,8 +211,8 @@ class SupplierUserController extends Controller {
       $supplier_data = json_decode($request->supplier);
       $supplier_certifications_data = $supplier_data->supplier_certifications;
       $supplier_data = (array) json_decode($request->supplier);
-      $payload['tax_certificate_doc'] = $request->file('tax_certificate_doc');
-      $payload['positive_opinion_doc'] = $request->file('positive_opinion_doc');
+      $supplier_data['tax_certificate_doc'] = $request->file('tax_certificate_doc');
+      $supplier_data['positive_opinion_doc'] = $request->file('positive_opinion_doc');
 
       $supplier = new Supplier;
       $supplier->created_by_id = $user->id;
