@@ -8,6 +8,7 @@ use App\Http\Controllers\CatalogController;
 use App\Http\Controllers\CertificationController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\CompanyUserController;
+use App\Http\Controllers\EventAreaController;
 use App\Http\Controllers\EventBuyerController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\EventMeetingWindowController;
@@ -184,6 +185,9 @@ Route::prefix('v1')->group(function () {
 
         Route::apiResource('/events/event_stand_configs', EventStandConfigController::class);
         Route::patch('/events/event_stand_configs/{id}/activate', [EventStandConfigController::class, 'activate']);
+
+        Route::apiResource('/events/areas', EventAreaController::class);
+        Route::patch('/events/areas/{id}/activate', [EventAreaController::class, 'activate']);
 
         Route::apiResource('/events/stand_types', StandTypeController::class);
         Route::patch('/events/stand_types/{id}/activate', [StandTypeController::class, 'activate']);
