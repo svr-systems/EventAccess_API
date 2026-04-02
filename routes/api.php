@@ -5,6 +5,7 @@ use App\Http\Controllers\BuyerController;
 use App\Http\Controllers\BuyerUserController;
 use App\Http\Controllers\BuyerUserScheduleController;
 use App\Http\Controllers\CatalogController;
+use App\Http\Controllers\CertificationController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\CompanyUserController;
 use App\Http\Controllers\EventBuyerController;
@@ -215,6 +216,10 @@ Route::prefix('v1')->group(function () {
   // -------------------------
   Route::middleware(['auth:api'])->group(function () {
     Route::middleware([EnsureUserIsAdmin::class])->group(function () {
+      
+      Route::apiResource('certifications', CertificationController::class);
+      Route::patch('certifications/{id}/activate', [CertificationController::class, 'activate']);
+      
       Route::apiResource('companies/users', CompanyUserController::class);
       Route::patch('companies/users/{id}/activate', [CompanyUserController::class, 'activate']);
 
