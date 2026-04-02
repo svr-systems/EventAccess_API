@@ -22,6 +22,7 @@ use App\Http\Controllers\StandAllocationController;
 use App\Http\Controllers\StandRequestController;
 use App\Http\Controllers\StandTypeController;
 use App\Http\Controllers\SupplierController;
+use App\Http\Controllers\SupplierEventAreaController;
 use App\Http\Controllers\SupplierUserController;
 use App\Http\Controllers\TicketCheckinController;
 use App\Http\Controllers\TicketTypeController;
@@ -122,6 +123,10 @@ Route::prefix('v1')->group(function () {
       Route::prefix('suppliers')->group(function () {
 
         Route::get('/catalogs/{catalog}', [CatalogController::class, 'supplierIndex']);
+
+        Route::apiResource('/supplier/events/areas', SupplierEventAreaController::class);
+        Route::patch('/supplier/events/areas/{id}/activate', [SupplierEventAreaController::class, 'activate']);
+        Route::get('/events/areas', [EventAreaController::class, 'supplierIndex']);
 
         Route::get('/stand_allocations', [StandAllocationController::class, 'index']);
         Route::get('/stand_allocations/{id}', [StandAllocationController::class, 'show']);

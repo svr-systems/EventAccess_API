@@ -3,12 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\HasActiveToggle;
-use App\Models\EventArea;
+use App\Models\SupplierEventArea;
 use DB;
 use Illuminate\Http\Request;
 use Throwable;
 
-class EventAreaController extends Controller {
+class SupplierEventAreaController extends Controller {
   use HasActiveToggle;
 
   /**
@@ -19,7 +19,7 @@ class EventAreaController extends Controller {
   public function index(Request $request) {
     try {
       return $this->rsp(200, 'Registros retornados correctamente', [
-        'items' => EventArea::getItems($request),
+        'items' => SupplierEventArea::getItems($request),
       ]);
     } catch (Throwable $err) {
       return $this->rsp(500, null, $err);
@@ -28,7 +28,7 @@ class EventAreaController extends Controller {
 
   public function show(string $id, Request $request) {
     try {
-      $item = EventArea::getItem($id, $request);
+      $item = SupplierEventArea::getItem($id, $request);
 
       if (is_null($item)) {
         return $this->rsp(404, 'Registro no encontrado');
@@ -51,11 +51,11 @@ class EventAreaController extends Controller {
   }
 
   public function destroy(string $id, Request $request) {
-    return $this->setActive(EventArea::class, $id, $request, false);
+    return $this->setActive(SupplierEventArea::class, $id, $request, false);
   }
 
   public function activate(string $id, Request $request) {
-    return $this->setActive(EventArea::class, $id, $request, true);
+    return $this->setActive(SupplierEventArea::class, $id, $request, true);
   }
 
   protected function storeUpdate(?string $id, Request $request) {
@@ -64,7 +64,7 @@ class EventAreaController extends Controller {
     try {
       $store_mode = is_null($id);
 
-      $valid = EventArea::validData($request->all());
+      $valid = SupplierEventArea::validData($request->all());
       if ($valid->fails()) {
         DB::rollBack();
         return $this->rsp(422, $valid->errors()->first(), null, $valid->errors()->toArray());
@@ -72,9 +72,9 @@ class EventAreaController extends Controller {
 
 
       if ($store_mode) {
-        $item = new EventArea();
+        $item = new SupplierEventArea();
       } else {
-        $item = EventArea::find((int) $id);
+        $item = SupplierEventArea::find((int) $id);
 
         if (is_null($item)) {
           DB::rollBack();
@@ -84,7 +84,7 @@ class EventAreaController extends Controller {
 
       $payload = $request->all();
 
-      $item = EventArea::saveData($item, $payload);
+      $item = SupplierEventArea::saveData($item, $payload);
 
       DB::commit();
 
@@ -95,21 +95,6 @@ class EventAreaController extends Controller {
       );
     } catch (Throwable $err) {
       DB::rollBack();
-      return $this->rsp(500, null, $err);
-    }
-  }
-
-  /**
-   * ===========================================
-   * CRUD
-   * ===========================================
-   */
-  public function supplierIndex(Request $request) {
-    try {
-      return $this->rsp(200, 'Registros retornados correctamente', [
-        'items' => EventArea::getSupplierItems($request),
-      ]);
-    } catch (Throwable $err) {
       return $this->rsp(500, null, $err);
     }
   }
