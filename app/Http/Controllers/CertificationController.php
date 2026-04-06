@@ -98,4 +98,19 @@ class CertificationController extends Controller {
       return $this->rsp(500, null, $err);
     }
   }
+
+  /**
+   * ===========================================
+   * CRUD
+   * ===========================================
+   */
+  public function publicIndex(Request $request) {
+    try {
+      return $this->rsp(200, 'Registros retornados correctamente', [
+        'items' => Certification::getPublicItems($request),
+      ]);
+    } catch (Throwable $err) {
+      return $this->rsp(500, null, $err);
+    }
+  }
 }
