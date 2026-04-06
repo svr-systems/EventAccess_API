@@ -47,7 +47,7 @@ Route::prefix('v1')->group(function () {
   // -------------------------
   Route::prefix('public')->group(function () {
 
-    Route::get('/catalogs/{catalog}', [CatalogController::class, 'index']);
+    // Route::get('/catalogs/{catalog}', [CatalogController::class, 'publicIndex']);
 
 
     Route::prefix('events')->group(function () {
@@ -84,7 +84,7 @@ Route::prefix('v1')->group(function () {
       });
     });
 
-    Route::get('catalogs/{catalog}', [CatalogController::class, 'publicIndex']);
+    Route::get('certifications', [CertificationController::class, 'publicIndex']);
   });
 
 

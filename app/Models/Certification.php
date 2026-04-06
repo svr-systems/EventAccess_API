@@ -125,4 +125,23 @@ class Certification extends Model {
 
     return $item;
   }
+
+  /**
+   * ===========================================
+   * CONSULTAS PUBLIC
+   * ===========================================
+   */
+  public static function getPublicItems(Request $request) {
+
+    $items = self::query();
+
+    $items->select([
+      'certifications.id',
+      'certifications.name'
+    ]);
+
+    $items->where('certifications.is_active', 1);
+
+    return $items->get();
+  }
 }
