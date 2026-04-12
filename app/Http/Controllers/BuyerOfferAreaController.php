@@ -3,12 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\HasActiveToggle;
-use App\Models\Certification;
+use App\Models\Buyer;
+use App\Models\BuyerOfferArea;
 use DB;
 use Illuminate\Http\Request;
 use Throwable;
 
-class CertificationController extends Controller {
+class BuyerOfferAreaController extends Controller {
   use HasActiveToggle;
 
   /**
@@ -19,7 +20,7 @@ class CertificationController extends Controller {
   public function index(Request $request) {
     try {
       return $this->rsp(200, 'Registros retornados correctamente', [
-        'items' => Certification::getItems($request),
+        'items' => BuyerOfferArea::getItems($request),
       ]);
     } catch (Throwable $err) {
       return $this->rsp(500, null, $err);
@@ -28,7 +29,7 @@ class CertificationController extends Controller {
 
   public function show(string $id, Request $request) {
     try {
-      $item = Certification::getItem($id, $request);
+      $item = BuyerOfferArea::getItem($id, $request);
 
       if (is_null($item)) {
         return $this->rsp(404, 'Registro no encontrado');
@@ -51,11 +52,11 @@ class CertificationController extends Controller {
   }
 
   public function destroy(string $id, Request $request) {
-    return $this->setActive(Certification::class, $id, $request, false);
+    return $this->setActive(BuyerOfferArea::class, $id, $request, false);
   }
 
   public function activate(string $id, Request $request) {
-    return $this->setActive(Certification::class, $id, $request, true);
+    return $this->setActive(BuyerOfferArea::class, $id, $request, true);
   }
 
   protected function storeUpdate(?string $id, Request $request) {
@@ -64,7 +65,7 @@ class CertificationController extends Controller {
     try {
       $store_mode = is_null($id);
 
-      $valid = Certification::validData($request->all());
+      $valid = BuyerOfferArea::validData($request->all());
       if ($valid->fails()) {
         DB::rollBack();
         return $this->rsp(422, $valid->errors()->first(), null, $valid->errors()->toArray());
@@ -72,9 +73,9 @@ class CertificationController extends Controller {
 
 
       if ($store_mode) {
-        $item = new Certification();
+        $item = new BuyerOfferArea;
       } else {
-        $item = Certification::find((int) $id);
+        $item = BuyerOfferArea::find((int) $id);
 
         if (is_null($item)) {
           DB::rollBack();
@@ -83,8 +84,9 @@ class CertificationController extends Controller {
       }
 
       $payload = $request->all();
+      $payload['buyer_id'] = Buyer::getItem($request)->id;
 
-      $item = Certification::saveData($item, $payload);
+      $item = BuyerOfferArea::saveData($item, $payload);
 
       DB::commit();
 
@@ -95,21 +97,6 @@ class CertificationController extends Controller {
       );
     } catch (Throwable $err) {
       DB::rollBack();
-      return $this->rsp(500, null, $err);
-    }
-  }
-
-  /**
-   * ===========================================
-   * CRUD
-   * ===========================================
-   */
-  public function supplierIndex(Request $request) {
-    try {
-      return $this->rsp(200, 'Registros retornados correctamente', [
-        'items' => Certification::getSupplierItems($request),
-      ]);
-    } catch (Throwable $err) {
       return $this->rsp(500, null, $err);
     }
   }

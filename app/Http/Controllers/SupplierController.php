@@ -27,9 +27,9 @@ class SupplierController extends Controller {
     }
   }
 
-  public function show(string $id, Request $request) {
+  public function show(Request $request) {
     try {
-      $item = Supplier::getItem($id, $request);
+      $item = Supplier::getItem($request);
 
       if (is_null($item)) {
         return $this->rsp(404, 'Registro no encontrado');
@@ -61,6 +61,8 @@ class SupplierController extends Controller {
 
   protected function storeUpdate(?string $id, Request $request) {
     DB::beginTransaction();
+    $supplier = Supplier::getItem($request);
+    $id = $supplier->id;
 
     try {
       $store_mode = is_null($id);
@@ -88,22 +90,28 @@ class SupplierController extends Controller {
       }
 
       $payload = $request->all();
+      $payload['logo_doc'] = $request->file('logo_doc');
       $payload['tax_certificate_doc'] = $request->file('tax_certificate_doc');
       $payload['positive_opinion_doc'] = $request->file('positive_opinion_doc');
 
       $item = Supplier::saveData($item, $payload);
 
-      $supplier_certifications_data = json_encode($request->supplier_certifications);
-      $supplier_certifications_data = json_decode($supplier_certifications_data);
+      $supplier_certifications_data = json_decode($request->supplier_certifications);
+      // $supplier_certifications_data = json_decode($supplier_certifications_data);
+
+      SupplierCertification::deactivateBySupplier($item->id);
 
       foreach ($supplier_certifications_data as $key => $supplier_certification_data) {
-        $supplier_certification = SupplierCertification::find($supplier_certification_data->id);
 
+      $supplier_certification = SupplierCertification::where('supplier_id',$item->id)
+        ->where('certification_id',$supplier_certification_data->certification_id)
+        ->first();
+        
         if(!$supplier_certification){
           $supplier_certification = new SupplierCertification;
         }
 
-        $supplier_certification->is_active = $supplier_certification_data->is_active;
+        $supplier_certification->is_active = true;
         $supplier_certification->supplier_id = $item->id;
         $supplier_certification->certification_id = $supplier_certification_data->certification_id;
         $supplier_certification->save();

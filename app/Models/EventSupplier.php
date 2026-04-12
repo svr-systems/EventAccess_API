@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Traits\HasAuditFields;
+use App\Services\StorageMgrService;
 use App\Support\DisplayId;
 use App\Support\Input;
 use Illuminate\Database\Eloquent\Model;
@@ -78,6 +79,8 @@ class EventSupplier extends Model {
   public static function getItems(Request $request) {
     $is_active = $request->query('is_active', 1);
 
+    $supplier_user = SupplierUser::getFirstByUser($request->user()->id);
+
     $items = self::query();
 
     $items->select([
@@ -90,13 +93,23 @@ class EventSupplier extends Model {
     $items->with([
       'created_by:id,email,name,paternal_surname,maternal_surname',
       'updated_by:id,email,name,paternal_surname,maternal_surname',
-      'events:id,name,description'
+      'events:id,name,description,logo_path'
     ]);
 
     $items->where('event_suppliers.is_active', (bool) ((int) $is_active))->
-      where('supplier_id',$request->supplier_id);
+      where('supplier_id', $supplier_user->supplier_id);
 
-    return $items->get();
+    $items = $items->get();
+
+    foreach ($items as $item) {
+      $item->events->logo_b64 = $item->events?->logo_path
+        ? StorageMgrService::getBase64($item->events->logo_path, 'Event')
+        : null;
+
+      $item->events->logo_doc = null;
+    }
+
+    return $items;
   }
 
   public static function getItem($id, Request $request = null) {

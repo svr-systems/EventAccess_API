@@ -26,9 +26,9 @@ class BuyerController extends Controller {
     }
   }
 
-  public function show(string $id, Request $request) {
+  public function show(Request $request) {
     try {
-      $item = Buyer::getItem($id, $request);
+      $item = Buyer::getItem($request);
 
       if (is_null($item)) {
         return $this->rsp(404, 'Registro no encontrado');
@@ -60,7 +60,9 @@ class BuyerController extends Controller {
 
   protected function storeUpdate(?string $id, Request $request) {
     DB::beginTransaction();
-
+    $buyer = Buyer::getItem($request);
+    $id = $buyer->id;
+    
     try {
       $store_mode = is_null($id);
 
@@ -87,6 +89,7 @@ class BuyerController extends Controller {
       }
 
       $payload = $request->all();
+      $payload['logo_doc'] = $request->file('logo_doc');
 
       $item = Buyer::saveData($item, $payload);
 

@@ -152,4 +152,24 @@ class EventArea extends Model {
 
     return $items->get();
   }
+  /**
+   * ===========================================
+   * CONSULTAS BUYER
+   * ===========================================
+   */
+  public static function getBuyerItems(Request $request) {
+
+    $items = self::query();
+
+    $items->select([
+      'event_areas.id',
+      'event_areas.event_id',
+      'event_areas.name'
+    ]);
+
+    $items->where('event_areas.is_active', 1);
+    $items->where('event_areas.event_id', $request->event_id);
+
+    return $items->get();
+  }
 }

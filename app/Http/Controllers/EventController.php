@@ -127,4 +127,34 @@ class EventController extends Controller {
       return $this->rsp(500, null, $err);
     }
   }
+
+  /**
+   * ===========================================
+   * SUPPLIER
+   * ===========================================
+   */
+  public function supplierShow($id) {
+    try {
+      return $this->rsp(200, 'Registros retornados correctamente', [
+        'item' => Event::getSupplierItem($id),
+      ]);
+    } catch (Throwable $err) {
+      return $this->rsp(500, null, $err);
+    }
+  }
+
+  /**
+   * ===========================================
+   * BUYER
+   * ===========================================
+   */
+  public function buyerShow($id) {
+    try {
+      return $this->rsp(200, 'Registros retornados correctamente', [
+        'item' => Event::getBuyerItem($id),
+      ]);
+    } catch (Throwable $err) {
+      return $this->rsp(500, null, $err);
+    }
+  }
 }

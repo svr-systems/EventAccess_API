@@ -78,6 +78,7 @@ class BuyerUser extends Model {
    */
   public static function getItems(Request $request) {
     $is_active = $request->query('is_active', 1);
+    $buyer_user = BuyerUser::getFirstByUser($request->user()->id);
 
     $items = self::query();
 
@@ -89,7 +90,7 @@ class BuyerUser extends Model {
     ]);
 
     // $items->where('buyer_users.is_active', (bool) ((int) $is_active));
-    $items->where('buyer_users.buyer_id', $request->buyer_id);
+    $items->where('buyer_users.buyer_id', $buyer_user->buyer_id);
 
     $items->with([
       'user',
@@ -133,5 +134,11 @@ class BuyerUser extends Model {
     $item->save();
 
     return $item;
+  }
+
+  public static function getFirstByUser(int $user_id): ?self {
+    return self::query()
+      ->where('user_id', $user_id)
+      ->first();
   }
 }

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BuyerController;
+use App\Http\Controllers\BuyerOfferAreaController;
 use App\Http\Controllers\BuyerUserController;
 use App\Http\Controllers\BuyerUserScheduleController;
 use App\Http\Controllers\CatalogController;
@@ -83,8 +84,6 @@ Route::prefix('v1')->group(function () {
         });
       });
     });
-
-    Route::get('certifications', [CertificationController::class, 'publicIndex']);
   });
 
 
@@ -94,6 +93,14 @@ Route::prefix('v1')->group(function () {
   Route::group(['middleware' => 'auth:api'], function () {
     Route::middleware([EnsureUserIsBuyer::class])->group(function () {
       Route::prefix('buyers')->group(function () {
+
+        Route::get('/catalogs/{catalog}', [CatalogController::class, 'buyersIndex']);
+
+        Route::get('/profile', [BuyerController::class, 'show']);
+        Route::put('/profile', [BuyerController::class, 'store']);
+
+        Route::apiResource('/offer_areas', BuyerOfferAreaController::class);
+        Route::patch('/offer_areas/{id}/activate', [BuyerOfferAreaController::class, 'activate']);
 
         Route::apiResource('/user_schedules', BuyerUserScheduleController::class);
         Route::patch('/user_schedules/{id}/activate', [BuyerUserScheduleController::class, 'activate']);
@@ -105,10 +112,11 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('/users', BuyerUserController::class);
         Route::patch('/users/{id}/activate', [BuyerUserController::class, 'activate']);
 
-        Route::apiResource('/buyer', BuyerController::class);
-        Route::patch('/buyer/{id}/activate', [BuyerController::class, 'activate']);
-
         Route::get('/events/buyer', [EventBuyerController::class, 'index']);
+        
+        Route::get('/events/areas', [EventAreaController::class, 'supplierIndex']);
+
+        Route::get('events/{id}', [EventController::class, 'supplierShow']);
 
       });
     });
@@ -123,6 +131,8 @@ Route::prefix('v1')->group(function () {
       Route::prefix('suppliers')->group(function () {
 
         Route::get('/catalogs/{catalog}', [CatalogController::class, 'supplierIndex']);
+
+        Route::get('certifications', [CertificationController::class, 'supplierIndex']);
 
         Route::apiResource('/supplier/events/areas', SupplierEventAreaController::class);
         Route::patch('/supplier/events/areas/{id}/activate', [SupplierEventAreaController::class, 'activate']);
@@ -145,12 +155,16 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('/users', SupplierUserController::class);
         Route::patch('/users/{id}/activate', [SupplierUserController::class, 'activate']);
 
-        Route::apiResource('/supplier', SupplierController::class);
-        Route::patch('/supplier/{id}/activate', [SupplierController::class, 'activate']);
+        
+        Route::get('/profile', [SupplierController::class, 'show']);
+        Route::put('/profile', [SupplierController::class, 'store']);
+        // Route::patch('/supplier/{id}/activate', [SupplierController::class, 'activate']);
 
         Route::get('/events/supplier', [EventSupplierController::class, 'index']);
 
         Route::get('/events/stands', [StandTypeController::class, 'suppliersIndex']);
+
+        Route::get('events/{id}', [EventController::class, 'supplierShow']);
 
       });
     });

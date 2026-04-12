@@ -89,12 +89,6 @@ class BuyerUserController extends Controller
 
       $store_mode = is_null($id);
 
-      $valid = BuyerUser::validData($request->all());
-      if ($valid->fails()) {
-        DB::rollBack();
-        return $this->rsp(422, $valid->errors()->first(), null, $valid->errors()->toArray());
-      }
-
       $email_current = null;
 
       if ($store_mode) {
@@ -122,7 +116,7 @@ class BuyerUserController extends Controller
       $user = User::saveData($user, $payload);
 
       $payload = [];
-      $payload['buyer_id'] = $request->buyer_id;
+      $payload['buyer_id'] = BuyerUser::getFirstByUser($request->user()->id)->id;
       $payload['user_id'] = $user->id;
       $item = BuyerUser::saveData($item, $payload);
 

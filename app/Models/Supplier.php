@@ -45,6 +45,10 @@ class Supplier extends Model {
       ->where('is_active', true);
   }
 
+  public function municipality(): BelongsTo {
+    return $this->belongsTo(Municipality::class, 'municipality_id');
+  }
+
   /**
    * ===========================================
    * ACCESSORES
@@ -151,7 +155,7 @@ class Supplier extends Model {
     return $items->get();
   }
 
-  public static function getItem($id, Request $request = null) {
+  public static function getItem(Request $request) {
     $item = self::query();
 
     $item->select(['suppliers.*']);
@@ -159,16 +163,27 @@ class Supplier extends Model {
     $item->with([
       'created_by:id,email',
       'updated_by:id,email',
-      'supplier_certifications:id,supplier_id,is_active,certification_id'
+      'supplier_certifications:id,supplier_id,is_active,certification_id',
+      'municipality:id,name,state_id',
+      'municipality.state:id,name',
     ]);
 
-    $item->whereKey((int) $id);
+    $item->join('supplier_users', 'supplier_users.supplier_id', 'suppliers.id');
+
+    $item->where('supplier_users.user_id', '=', $request->user()->id);
 
     $item = $item->first();
 
     if (is_null($item)) {
       return null;
     }
+
+
+    $item->tax_certificate_b64 = StorageMgrService::getBase64($item->tax_certificate_path, 'Supplier');
+    $item->tax_certificate_doc = null;
+
+    $item->positive_opinion_b64 = StorageMgrService::getBase64($item->positive_opinion_path, 'Supplier');
+    $item->positive_opinion_doc = null;
 
     return $item;
   }

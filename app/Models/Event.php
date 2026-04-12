@@ -339,4 +339,134 @@ class Event extends Model {
 
     return $item;
   }
+  public static function getSupplierItem($id, Request $request = null) {
+    $item = self::query();
+
+    $item->select([
+      'events.id',
+      'events.name',
+      'events.has_stands',
+      'events.has_buyers',
+      'events.description',
+      'events.place_name',
+      'events.address',
+      'events.logo_path',
+      'events.flyer_path',
+      'events.sale_start_at',
+      'events.sale_end_at',
+
+      DB::raw('MIN(presentation_tickets.price) as price_from'),
+      DB::raw('SUM(COALESCE(presentation_tickets.capacity - presentation_tickets.sold, 0)) as tickets_available'),
+      DB::raw('MIN(presentation_dates.date) as next_date'),
+    ]);
+
+    $item->join('presentation_dates', 'presentation_dates.event_id', '=', 'events.id');
+
+    $item->join(
+      'presentation_tickets',
+      'presentation_tickets.presentation_date_id',
+      '=',
+      'presentation_dates.id'
+    );
+
+    $item->where('events.id', (int) $id);
+
+    $item->where(function ($q) {
+      $q->whereNull('presentation_tickets.capacity')
+        ->orWhereRaw('presentation_tickets.sold < presentation_tickets.capacity');
+    });
+
+    $item->groupBy([
+      'events.id',
+      'events.name',
+      'events.has_stands',
+      'events.has_buyers',
+      'events.description',
+      'events.place_name',
+      'events.address',
+      'events.logo_path',
+      'events.flyer_path',
+      'events.sale_start_at',
+      'events.sale_end_at',
+    ]);
+
+    $item = $item->first();
+
+    if (is_null($item)) {
+      return null;
+    }
+
+    $item->logo_b64 = StorageMgrService::getBase64($item->logo_path, 'Event');
+    $item->logo_doc = null;
+
+    $item->flyer_b64 = StorageMgrService::getBase64($item->flyer_path, 'Event');
+    $item->flyer_doc = null;
+
+    return $item;
+  }
+  public static function getBuyerItem($id, Request $request = null) {
+    $item = self::query();
+
+    $item->select([
+      'events.id',
+      'events.name',
+      'events.has_stands',
+      'events.has_buyers',
+      'events.description',
+      'events.place_name',
+      'events.address',
+      'events.logo_path',
+      'events.flyer_path',
+      'events.sale_start_at',
+      'events.sale_end_at',
+
+      DB::raw('MIN(presentation_tickets.price) as price_from'),
+      DB::raw('SUM(COALESCE(presentation_tickets.capacity - presentation_tickets.sold, 0)) as tickets_available'),
+      DB::raw('MIN(presentation_dates.date) as next_date'),
+    ]);
+
+    $item->join('presentation_dates', 'presentation_dates.event_id', '=', 'events.id');
+
+    $item->join(
+      'presentation_tickets',
+      'presentation_tickets.presentation_date_id',
+      '=',
+      'presentation_dates.id'
+    );
+
+    $item->where('events.id', (int) $id);
+
+    $item->where(function ($q) {
+      $q->whereNull('presentation_tickets.capacity')
+        ->orWhereRaw('presentation_tickets.sold < presentation_tickets.capacity');
+    });
+
+    $item->groupBy([
+      'events.id',
+      'events.name',
+      'events.has_stands',
+      'events.has_buyers',
+      'events.description',
+      'events.place_name',
+      'events.address',
+      'events.logo_path',
+      'events.flyer_path',
+      'events.sale_start_at',
+      'events.sale_end_at',
+    ]);
+
+    $item = $item->first();
+
+    if (is_null($item)) {
+      return null;
+    }
+
+    $item->logo_b64 = StorageMgrService::getBase64($item->logo_path, 'Event');
+    $item->logo_doc = null;
+
+    $item->flyer_b64 = StorageMgrService::getBase64($item->flyer_path, 'Event');
+    $item->flyer_doc = null;
+
+    return $item;
+  }
 }

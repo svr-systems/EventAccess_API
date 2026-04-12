@@ -35,7 +35,7 @@ class SupplierUser extends Model {
   }
 
   public function role(): BelongsTo {
-    return $this->belongsTo(Role::class,'role_id');
+    return $this->belongsTo(Role::class, 'role_id');
   }
 
   /**
@@ -73,6 +73,7 @@ class SupplierUser extends Model {
    */
   public static function getItems(Request $request) {
     $is_active = $request->query('is_active', 1);
+    $supplier_user = SupplierUser::getFirstByUser($request->user()->id);
 
     $items = self::query();
 
@@ -84,7 +85,7 @@ class SupplierUser extends Model {
     ]);
 
     // $items->where('supplier_users.is_active', (bool) ((int) $is_active));
-    $items->where('supplier_users.supplier_id', $request->supplier_id);
+    $items->where('supplier_users.supplier_id', $supplier_user->supplier_id);
 
     $items->with([
       'user',
@@ -114,6 +115,12 @@ class SupplierUser extends Model {
     $item->user = User::getItem($item->user_id);
 
     return $item;
+  }
+
+  public static function getFirstByUser(int $user_id): ?self {
+    return self::query()
+      ->where('user_id', $user_id)
+      ->first();
   }
 
   /**

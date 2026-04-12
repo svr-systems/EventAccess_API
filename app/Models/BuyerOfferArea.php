@@ -10,9 +10,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Http\Request;
 use Validator;
 
-class Certification extends Model {
+class BuyerOfferArea extends Model {
   use HasAuditFields;
-
   /**
    * ===========================================
    * CONVERSIONES DE TIPO
@@ -41,6 +40,10 @@ class Certification extends Model {
     return $this->belongsTo(User::class, 'updated_by_id');
   }
 
+  public function event_area(): BelongsTo {
+    return $this->belongsTo(EventArea::class, 'event_area_id');
+  }
+
   /**
    * ===========================================
    * ACCESSORES
@@ -57,17 +60,51 @@ class Certification extends Model {
    */
   public static function validData(array $data) {
     $rules = [
-      'name' => ['required', 'string', 'min:2', 'max:100'],
+      'id' => ['nullable', 'integer'],
+      'event_area_id' => ['required', 'integer', 'exists:event_areas,id'],
+      'description' => ['required', 'string', 'min:2'],
     ];
 
     $msgs = [
-      'name.required' => 'El nombre es obligatorio.',
-      'name.string' => 'El nombre debe ser un texto válido.',
-      'name.min' => 'El nombre debe tener al menos 2 caracteres.',
-      'name.max' => 'El nombre no puede tener más de 100 caracteres.',
+      'id.integer' => 'El identificador debe ser válido.',
+
+      'event_area_id.required' => 'El área del evento es obligatoria.',
+      'event_area_id.integer' => 'El área del evento debe ser un identificador válido.',
+      'event_area_id.exists' => 'El área del evento seleccionada no es válida.',
+
+      'description.required' => 'La descripción es obligatoria.',
+      'description.string' => 'La descripción debe ser un texto válido.',
+      'description.min' => 'La descripción debe tener al menos 2 caracteres.',
     ];
 
-    return Validator::make($data, $rules, $msgs);
+    $validator = Validator::make($data, $rules, $msgs);
+
+    $validator->after(function ($validator) use ($data) {
+      $id = Input::toId(data_get($data, 'id'));
+      $buyer_id = Input::toId(data_get($data, 'buyer_id'));
+      $event_area_id = Input::toId(data_get($data, 'event_area_id'));
+
+      if (is_null($buyer_id) || is_null($event_area_id)) {
+        return;
+      }
+
+      $query = self::query()
+        ->where('buyer_id', $buyer_id)
+        ->where('event_area_id', $event_area_id);
+
+      if (!is_null($id)) {
+        $query->where('id', '<>', $id);
+      }
+
+      if ($query->exists()) {
+        $validator->errors()->add(
+          'event_area_id',
+          'Ya existe una oferta para este comprador en esa área del evento.'
+        );
+      }
+    });
+
+    return $validator;
   }
 
   /**
@@ -81,23 +118,31 @@ class Certification extends Model {
     $items = self::query();
 
     $items->select([
-      'certifications.id',
-      'certifications.name'
+      'buyer_offer_areas.id',
+      'buyer_offer_areas.is_active',
+      'buyer_offer_areas.buyer_id',
+      'buyer_offer_areas.event_area_id',
+      'buyer_offer_areas.description',
     ]);
 
-    $items->where('certifications.is_active', (bool) ((int) $is_active));
+    $items->with([
+      'event_area:id,name'
+    ]);
 
+    $items->where('buyer_offer_areas.is_active', (bool) ((int) $is_active));
+    
     return $items->get();
   }
 
   public static function getItem($id, Request $request = null) {
     $item = self::query();
 
-    $item->select(['certifications.*']);
+    $item->select(['buyer_offer_areas.*']);
 
     $item->with([
       'created_by:id,email',
       'updated_by:id,email',
+      'event_area:id,name'
     ]);
 
     $item->whereKey((int) $id);
@@ -117,31 +162,12 @@ class Certification extends Model {
    * ===========================================
    */
   public static function saveData(self $item, array $data): self {
-    $logo_doc = data_get($data, 'logo_doc');
-
-    $item->name = Input::toUpper(data_get($data, 'name'));
+    $item->buyer_id = Input::toId(data_get($data, 'buyer_id'));
+    $item->event_area_id = Input::toId(data_get($data, 'event_area_id'));
+    $item->description = Input::toText(data_get($data, 'description'));
 
     $item->save();
 
     return $item;
-  }
-
-  /**
-   * ===========================================
-   * CONSULTAS SUPPLIERS
-   * ===========================================
-   */
-  public static function getSupplierItems(Request $request) {
-
-    $items = self::query();
-
-    $items->select([
-      'certifications.id',
-      'certifications.name'
-    ]);
-
-    $items->where('certifications.is_active', 1);
-
-    return $items->get();
   }
 }

@@ -105,4 +105,27 @@ class CatalogController extends Controller
       return $this->rsp(500, null, $err);
     }
   }
+
+  public function buyersIndex(string $catalog, Request $request)
+  {
+    try {
+      $catalog = strtolower(trim($catalog));
+
+      $model = match ($catalog) {
+        'states' => \App\Models\State::class,
+        'municipalities' => \App\Models\Municipality::class,
+        default => null,
+      };
+
+      if (!$model) {
+        return $this->rsp(404, 'Catálogo no encontrado');
+      }
+
+      return $this->rsp(200, 'Registros retornados correctamente', [
+        'items' => $model::getItems($request),
+      ]);
+    } catch (Throwable $err) {
+      return $this->rsp(500, null, $err);
+    }
+  }
 }

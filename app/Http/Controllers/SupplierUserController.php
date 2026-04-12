@@ -208,29 +208,12 @@ class SupplierUserController extends Controller {
 
       // $supplier = json_encode($request->supplier);
       // $supplier_data = json_decode($supplier);
-      $supplier_data = json_decode($request->supplier);
-      $supplier_certifications_data = $supplier_data->supplier_certifications;
       $supplier_data = (array) json_decode($request->supplier);
-      $supplier_data['tax_certificate_doc'] = $request->file('tax_certificate_doc');
-      $supplier_data['positive_opinion_doc'] = $request->file('positive_opinion_doc');
 
       $supplier = new Supplier;
       $supplier->created_by_id = $user->id;
       $supplier->updated_by_id = $user->id;
       $supplier = Supplier::saveData($supplier, $supplier_data);
-
-      foreach ($supplier_certifications_data as $key => $supplier_certification_data) {
-        $supplier_certification = SupplierCertification::find($supplier_certification_data->id);
-
-        if(!$supplier_certification){
-          $supplier_certification = new SupplierCertification;
-        }
-
-        $supplier_certification->is_active = $supplier_certification_data->is_active;
-        $supplier_certification->supplier_id = $supplier->id;
-        $supplier_certification->certification_id = $supplier_certification_data->certification_id;
-        $supplier_certification->save();
-      }
 
       $payload = [];
       $payload['supplier_id'] = $supplier->id;
