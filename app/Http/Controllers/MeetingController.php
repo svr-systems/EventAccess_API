@@ -108,4 +108,13 @@ class MeetingController extends Controller {
       return $this->rsp(500, null, $err);
     }
   }
+  public function getAvailableSlots(Request $request) {
+    try {
+      return $this->rsp(200, 'Registros retornados correctamente', [
+        'items' => Meeting::getAvailableSlots($request),
+      ]);
+    } catch (Throwable $err) {
+      return $this->rsp(500, null, $err);
+    }
+  }
 }

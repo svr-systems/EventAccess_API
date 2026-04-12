@@ -5,6 +5,8 @@ namespace App\Models;
 use App\Models\Traits\HasAuditFields;
 use App\Support\DisplayId;
 use App\Support\Input;
+use Carbon\Carbon;
+use DB;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Http\Request;
@@ -305,5 +307,199 @@ class Meeting extends Model {
     return \Carbon\Carbon::createFromFormat('H:i', $start_time)
       ->addMinutes($minutes)
       ->format('H:i:s');
+  }
+
+  public static function getAvailableSlots(Request $request) {
+    $buyer_user = BuyerUser::getFirstByUser($request->user()->id);
+
+    if (!$buyer_user) {
+      return collect();
+    }
+
+    $buyer_id = $buyer_user->buyer_id;
+    $buyer_user_id = $buyer_user->id;
+    $supplier_user_id = (int) $request->supplier_user_id;
+    $event_id = (int) $request->event_id;
+
+    $supplier_user = SupplierUser::query()
+      ->select([
+        'id',
+        'supplier_id',
+        'user_id',
+      ])
+      ->where('id', $supplier_user_id)
+      ->first();
+
+    if (!$supplier_user) {
+      return collect();
+    }
+
+    $supplier_id = $supplier_user->supplier_id;
+
+    // Validar que ese supplier sí sea visible para este buyer dentro del evento
+    $supplier_is_available = DB::table('supplier_event_areas')
+      ->join('event_areas', 'event_areas.id', '=', 'supplier_event_areas.event_area_id')
+      ->join('buyer_offer_areas', function ($join) use ($buyer_id) {
+        $join->on('buyer_offer_areas.event_area_id', '=', 'supplier_event_areas.event_area_id')
+          ->where('buyer_offer_areas.buyer_id', $buyer_id)
+          ->where('buyer_offer_areas.is_active', true);
+      })
+      ->where('supplier_event_areas.is_active', true)
+      ->where('event_areas.is_active', true)
+      ->where('supplier_event_areas.supplier_id', $supplier_id)
+      ->where('event_areas.event_id', $event_id)
+      ->exists();
+
+    if (!$supplier_is_available) {
+      return collect();
+    }
+
+    $event = Event::query()
+      ->select([
+        'id',
+        'meeting_time',
+      ])
+      ->where('id', $event_id)
+      ->where('is_active', true)
+      ->first();
+
+    if (!$event || !$event->meeting_time || $event->meeting_time <= 0) {
+      return collect();
+    }
+
+    $meeting_minutes = (int) $event->meeting_time;
+
+    $schedules = BuyerUserSchedule::query()
+      ->select([
+        'id',
+        'presentation_date_id',
+        'start_time',
+        'end_time',
+      ])
+      ->where('is_active', true)
+      ->where('event_id', $event_id)
+      ->where('buyer_id', $buyer_id)
+      ->where('buyer_user_id', $buyer_user_id)
+      ->orderBy('presentation_date_id')
+      ->orderBy('start_time')
+      ->get();
+
+    if ($schedules->isEmpty()) {
+      return collect();
+    }
+
+    $presentation_date_ids = $schedules->pluck('presentation_date_id')->unique()->values();
+
+    $presentation_dates = PresentationDate::query()
+      ->select([
+        'id',
+        'date',
+      ])
+      ->whereIn('id', $presentation_date_ids)
+      ->where('is_active', true)
+      ->get()
+      ->keyBy('id');
+
+    // Meetings ocupados del buyer_user
+    $buyer_busy_meetings = self::query()
+      ->select([
+        'presentation_date_id',
+        'start_time',
+        'end_time',
+      ])
+      ->where('is_active', true)
+      ->whereIn('presentation_date_id', $presentation_date_ids)
+      ->where('buyer_user_id', $buyer_user_id)
+      ->where(function ($query) {
+        $query->whereNull('is_confirmed')
+          ->orWhere('is_confirmed', true);
+      })
+      ->get();
+
+    // Meetings ocupados del supplier_user seleccionado
+    $supplier_user_busy_meetings = self::query()
+      ->select([
+        'presentation_date_id',
+        'start_time',
+        'end_time',
+      ])
+      ->where('is_active', true)
+      ->whereIn('presentation_date_id', $presentation_date_ids)
+      ->where('supplier_user_id', $supplier_user_id)
+      ->where(function ($query) {
+        $query->whereNull('is_confirmed')
+          ->orWhere('is_confirmed', true);
+      })
+      ->get();
+
+    $busy_by_presentation_date = [];
+
+    foreach ($buyer_busy_meetings as $meeting) {
+      $busy_by_presentation_date[$meeting->presentation_date_id][] = [
+        'start_time' => $meeting->start_time,
+        'end_time' => $meeting->end_time,
+      ];
+    }
+
+    foreach ($supplier_user_busy_meetings as $meeting) {
+      $busy_by_presentation_date[$meeting->presentation_date_id][] = [
+        'start_time' => $meeting->start_time,
+        'end_time' => $meeting->end_time,
+      ];
+    }
+
+    $result = collect();
+
+    foreach ($schedules as $schedule) {
+      $presentation_date = $presentation_dates[$schedule->presentation_date_id] ?? null;
+
+      if (!$presentation_date) {
+        continue;
+      }
+
+      $slot_start = Carbon::createFromFormat('H:i:s', $schedule->start_time);
+      $schedule_end = Carbon::createFromFormat('H:i:s', $schedule->end_time);
+
+      while (true) {
+        $slot_end = (clone $slot_start)->addMinutes($meeting_minutes);
+
+        if ($slot_end->gt($schedule_end)) {
+          break;
+        }
+
+        $is_busy = false;
+        $busy_ranges = $busy_by_presentation_date[$schedule->presentation_date_id] ?? [];
+
+        foreach ($busy_ranges as $busy_range) {
+          $busy_start = Carbon::createFromFormat('H:i:s', $busy_range['start_time']);
+          $busy_end = Carbon::createFromFormat('H:i:s', $busy_range['end_time']);
+
+          $overlaps = $slot_start->lt($busy_end) && $slot_end->gt($busy_start);
+
+          if ($overlaps) {
+            $is_busy = true;
+            break;
+          }
+        }
+
+        if (!$is_busy) {
+          $result->push([
+            'presentation_date_id' => $schedule->presentation_date_id,
+            'presentation_date' => $presentation_date,
+            'start_time' => $slot_start->format('H:i'),
+            'end_time' => $slot_end->format('H:i'),
+          ]);
+        }
+
+        $slot_start = $slot_end;
+      }
+    }
+
+    return $result
+      ->sortBy([
+        ['presentation_date.date', 'asc'],
+        ['start_time', 'asc'],
+      ])
+      ->values();
   }
 }

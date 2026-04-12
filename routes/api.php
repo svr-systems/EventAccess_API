@@ -15,6 +15,7 @@ use App\Http\Controllers\EventController;
 use App\Http\Controllers\EventMeetingWindowController;
 use App\Http\Controllers\EventStandConfigController;
 use App\Http\Controllers\EventSupplierController;
+use App\Http\Controllers\MeetingController;
 use App\Http\Controllers\OfferController;
 use App\Http\Controllers\PresentationDateController;
 use App\Http\Controllers\PresentationTicketController;
@@ -95,6 +96,8 @@ Route::prefix('v1')->group(function () {
       Route::prefix('buyers')->group(function () {
 
         Route::get('/catalogs/{catalog}', [CatalogController::class, 'buyersIndex']);
+
+        Route::get('/meetings/available', [MeetingController::class, 'getAvailableSlots']);
 
         Route::get('/offer_areas/suppliers/{supplier_id}', [SupplierController::class, 'buyerShow']);
         Route::get('/offer_areas/suppliers', [BuyerController::class, 'getMatchedSupplierAreas']);
