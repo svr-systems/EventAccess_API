@@ -48,6 +48,11 @@ class Supplier extends Model {
   public function municipality(): BelongsTo {
     return $this->belongsTo(Municipality::class, 'municipality_id');
   }
+  public function appendLogoBase64() {
+    $this->logo_b64 = StorageMgrService::getBase64($this->logo_path, 'Supplier');
+
+    return $this;
+  }
 
   /**
    * ===========================================

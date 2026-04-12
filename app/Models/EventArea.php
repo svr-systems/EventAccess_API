@@ -41,6 +41,10 @@ class EventArea extends Model {
     return $this->belongsTo(User::class, 'updated_by_id');
   }
 
+  public function event() {
+    return $this->belongsTo(Event::class);
+  }
+
   /**
    * ===========================================
    * ACCESSORES

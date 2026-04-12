@@ -105,4 +105,14 @@ class BuyerController extends Controller {
       return $this->rsp(500, null, $err);
     }
   }
+
+  public function getMatchedSupplierAreas(Request $request) {
+    try {
+      return $this->rsp(200, 'Registros retornados correctamente', [
+        'items' => Buyer::getMatchedSupplierAreas($request),
+      ]);
+    } catch (Throwable $err) {
+      return $this->rsp(500, null, $err);
+    }
+  }
 }

@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Services\StorageMgrService;
 use App\Support\DisplayId;
 use App\Support\Input;
+use DB;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Http\Request;
@@ -41,6 +42,14 @@ class Buyer extends Model {
 
   public function municipality(): BelongsTo {
     return $this->belongsTo(Municipality::class, 'municipality_id');
+  }
+
+  public function supplier() {
+    return $this->belongsTo(Supplier::class);
+  }
+
+  public function eventArea() {
+    return $this->belongsTo(EventArea::class);
   }
 
   /**
@@ -172,5 +181,94 @@ class Buyer extends Model {
     $item->save();
 
     return $item;
+  }
+
+  public static function getMatchedSupplierAreas(Request $request) {
+    $buyer_user = BuyerUser::getFirstByUser($request->user()->id);
+
+    if (!$buyer_user) {
+      return collect();
+    }
+
+    $buyer_id = $buyer_user->buyer_id;
+    $search = trim((string) $request->search);
+
+    $items = DB::table('supplier_event_areas')
+      ->select([
+        'supplier_event_areas.id',
+        'supplier_event_areas.supplier_id',
+        'supplier_event_areas.event_area_id',
+      ])
+      ->join('suppliers', 'suppliers.id', '=', 'supplier_event_areas.supplier_id')
+      ->join('event_areas', 'event_areas.id', '=', 'supplier_event_areas.event_area_id')
+      ->where('supplier_event_areas.is_active', true)
+      ->where('suppliers.is_active', true)
+      ->where('event_areas.is_active', true)
+      ->whereExists(function ($query) use ($buyer_id) {
+        $query->selectRaw('1')
+          ->from('buyer_offer_areas')
+          ->whereColumn('buyer_offer_areas.event_area_id', 'supplier_event_areas.event_area_id')
+          ->where('buyer_offer_areas.buyer_id', $buyer_id)
+          ->where('buyer_offer_areas.is_active', true);
+      });
+
+    if ($search !== '') {
+      $items->where(function ($query) use ($search) {
+        $query->where('suppliers.name', 'like', '%' . $search . '%')
+          ->orWhere('suppliers.description', 'like', '%' . $search . '%')
+          ->orWhere('suppliers.website_url', 'like', '%' . $search . '%')
+          ->orWhere('event_areas.name', 'like', '%' . $search . '%');
+      });
+    }
+
+    $rows = $items
+      ->distinct()
+      ->orderBy('event_areas.name')
+      ->orderBy('suppliers.name')
+      ->get();
+
+    if ($rows->isEmpty()) {
+      return collect();
+    }
+
+    $supplier_ids = $rows->pluck('supplier_id')->unique()->values();
+    $event_area_ids = $rows->pluck('event_area_id')->unique()->values();
+
+    $suppliers = Supplier::query()
+      ->select([
+        'id',
+        'name',
+        'logo_path',
+        'phone',
+        'website_url',
+        'description',
+      ])
+      ->whereIn('id', $supplier_ids)
+      ->get()
+      ->keyBy('id');
+
+    $event_areas = EventArea::query()
+      ->select([
+        'id',
+        'event_id',
+        'name',
+      ])
+      ->whereIn('id', $event_area_ids)
+      ->get()
+      ->keyBy('id');
+
+    return $rows->map(function ($row) use ($suppliers, $event_areas) {
+      $supplier = $suppliers[$row->supplier_id] ?? null;
+
+      $supplier->appendLogoBase64();
+
+      return [
+        'id' => $row->id,
+        'supplier_id' => $row->supplier_id,
+        'supplier' => $supplier,
+        'event_area_id' => $row->event_area_id,
+        'event_area' => $event_areas[$row->event_area_id] ?? null,
+      ];
+    })->values();
   }
 }
