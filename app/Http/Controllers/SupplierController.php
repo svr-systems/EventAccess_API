@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\HasActiveToggle;
+use App\Models\BuyerUser;
 use App\Models\Supplier;
 use App\Models\SupplierCertification;
 use DB;
@@ -103,11 +104,11 @@ class SupplierController extends Controller {
 
       foreach ($supplier_certifications_data as $key => $supplier_certification_data) {
 
-      $supplier_certification = SupplierCertification::where('supplier_id',$item->id)
-        ->where('certification_id',$supplier_certification_data->certification_id)
-        ->first();
-        
-        if(!$supplier_certification){
+        $supplier_certification = SupplierCertification::where('supplier_id', $item->id)
+          ->where('certification_id', $supplier_certification_data->certification_id)
+          ->first();
+
+        if (!$supplier_certification) {
           $supplier_certification = new SupplierCertification;
         }
 
@@ -126,6 +127,31 @@ class SupplierController extends Controller {
       );
     } catch (Throwable $err) {
       DB::rollBack();
+      return $this->rsp(500, null, $err);
+    }
+  }
+
+  /**
+   * ===========================================
+   * BUYERS
+   * ===========================================
+   */
+
+  public function buyerShow(Request $request,$supplier_id) {
+    try {
+      $buyer_user = BuyerUser::getFirstByUser($request->user()->id);
+      $buyer_id = $buyer_user->buyer_id;
+
+      $item = Supplier::publicGgetByIdForBuyer($supplier_id,$buyer_id);
+
+      if (is_null($item)) {
+        return $this->rsp(404, 'Registro no encontrado');
+      }
+
+      return $this->rsp(200, 'Registro retornado correctamente', [
+        'item' => $item,
+      ]);
+    } catch (Throwable $err) {
       return $this->rsp(500, null, $err);
     }
   }

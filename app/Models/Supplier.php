@@ -242,4 +242,53 @@ class Supplier extends Model {
 
     return $item;
   }
+
+  /**
+   * ===========================================
+   * CONSULTAS
+   * ===========================================
+   */
+
+  public static function publicGgetByIdForBuyer(int $supplier_id, int $buyer_id): ?self {
+    
+    $supplier = self::query()
+      ->select([
+        'suppliers.id',
+        'suppliers.name',
+        'suppliers.logo_path',
+        'suppliers.phone',
+        'suppliers.website_url',
+        'suppliers.description',
+      ])
+      ->where('suppliers.id', $supplier_id)
+      ->where('suppliers.is_active', true)
+      ->whereExists(function ($query) use ($buyer_id) {
+        $query->selectRaw('1')
+          ->from('supplier_event_areas')
+          ->join('event_areas', 'event_areas.id', '=', 'supplier_event_areas.event_area_id')
+          ->join('buyer_offer_areas', function ($join) use ($buyer_id) {
+            $join->on('buyer_offer_areas.event_area_id', '=', 'supplier_event_areas.event_area_id')
+              ->where('buyer_offer_areas.buyer_id', $buyer_id)
+              ->where('buyer_offer_areas.is_active', true);
+          })
+          ->whereColumn('supplier_event_areas.supplier_id', 'suppliers.id')
+          ->where('supplier_event_areas.is_active', true)
+          ->where('event_areas.is_active', true);
+      })
+      ->first();
+
+    if (!$supplier) {
+      return null;
+    }
+
+    // logo base64
+    if ($supplier->logo_path) {
+      $supplier->appendLogoBase64();
+    }
+
+    // display_id
+    $supplier->display_id = 'U-' . str_pad($supplier->id, 4, '0', STR_PAD_LEFT);
+
+    return $supplier;
+  }
 }
