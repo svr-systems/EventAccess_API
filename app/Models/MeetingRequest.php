@@ -317,7 +317,7 @@ class MeetingRequest extends Model {
     ]);
 
     $items->with([
-      'supplier:id,name',
+      'supplier:id,name,logo_path',
       'supplier_user:id,user_id',
       'supplier_user.user:id,name,paternal_surname,maternal_surname',
     ]);
@@ -329,7 +329,13 @@ class MeetingRequest extends Model {
       ->whereNull('meeting_requests.is_approved')
       ->orderByDesc('meeting_requests.id');
 
-    return $items->get();
+    $items = $items->get();
+
+    return $items->map(function ($item) {
+      $item->supplier->appendLogoBase64();
+
+      return $item;
+    });
   }
 
   public static function getBuyerItem($id, Request $request = null) {
@@ -344,7 +350,7 @@ class MeetingRequest extends Model {
     $item->select(['meeting_requests.*']);
 
     $item->with([
-      'supplier:id,name',
+      'supplier:id,name,logo_path',
       'supplier_user:id,user_id',
       'supplier_user.user:id,name,paternal_surname,maternal_surname',
     ]);
@@ -359,6 +365,10 @@ class MeetingRequest extends Model {
       return null;
     }
 
-    return $item;
+    return $item->map(function ($item) {
+      $item->supplier->appendLogoBase64();
+
+      return $item;
+    });
   }
 }
