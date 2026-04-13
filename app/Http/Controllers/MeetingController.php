@@ -156,4 +156,19 @@ class MeetingController extends Controller {
       return $this->rsp(500, null, $err);
     }
   }
+
+  /**
+   * ===========================================
+   * CRUD
+   * ===========================================
+   */
+  public function supplierIndex(Request $request) {
+    try {
+      return $this->rsp(200, 'Registros retornados correctamente', [
+        'items' => Meeting::getSupplierItems($request),
+      ]);
+    } catch (Throwable $err) {
+      return $this->rsp(500, null, $err);
+    }
+  }
 }

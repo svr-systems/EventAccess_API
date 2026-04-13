@@ -56,6 +56,10 @@ class Meeting extends Model {
     return $this->belongsTo(PresentationDate::class, 'presentation_date_id');
   }
 
+  public function buyer(): BelongsTo {
+    return $this->belongsTo(Buyer::class, 'buyer_id');
+  }
+
   /**
    * ===========================================
    * ACCESSORES
@@ -596,5 +600,39 @@ class Meeting extends Model {
         ['start_time', 'asc'],
       ])
       ->values();
+  }
+
+  /**
+   * ===========================================
+   * CONSULTAS SUPPLIER
+   * ===========================================
+   */
+  public static function getSupplierItems(Request $request) {
+    $is_active = $request->query('is_active', 1);
+    $supplier_user = SupplierUser::getFirstByUser($request->user()->id);
+
+    $items = self::query();
+
+    $items->select([
+      'meetings.*'
+    ]);
+
+    $items->with([
+      'event_area:id,name',
+      'buyer:id,name,logo_path',
+      'presentation_date:id,date',
+    ]);
+
+    $items->where('meetings.is_active', (bool) ((int) $is_active))->
+      where('supplier_user_id', $supplier_user->id)->
+      where('supplier_id', $supplier_user->supplier_id);
+
+    $items = $items->get();
+
+    return $items->map(function ($item) {
+      $item->buyer->appendLogoBase64();
+
+      return $item;
+    });
   }
 }
