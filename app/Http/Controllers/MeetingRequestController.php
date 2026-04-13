@@ -136,4 +136,26 @@ class MeetingRequestController extends Controller {
       return $this->rsp(500, null, $err);
     }
   }
+
+  public function reject(Request $request) {
+    DB::beginTransaction();
+
+    try {
+      
+      $meeting_request = MeetingRequest::find($request->id);
+      $meeting_request->is_approved = false;
+      $meeting_request->save();
+
+      DB::commit();
+
+      return $this->rsp(
+        200,
+        'Registro rechazado correctamente',
+        null
+      );
+    } catch (Throwable $err) {
+      DB::rollBack();
+      return $this->rsp(500, null, $err);
+    }
+  }
 }

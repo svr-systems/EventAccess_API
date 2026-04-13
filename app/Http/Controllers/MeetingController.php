@@ -6,6 +6,7 @@ use App\Http\Controllers\Concerns\HasActiveToggle;
 use App\Models\BuyerUser;
 use App\Models\Event;
 use App\Models\Meeting;
+use App\Models\MeetingRequest;
 use DB;
 use Illuminate\Http\Request;
 use Throwable;
@@ -104,6 +105,13 @@ class MeetingController extends Controller {
       $payload['meeting_time'] = $event->meeting_time;
 
       $item = Meeting::saveData($item, $payload);
+
+      if ($request->meeting_request_id) {
+        $meeting_request = MeetingRequest::find($request->meeting_request_id);
+        $meeting_request->is_approved = true;
+        $meeting_request->meeting_id = $item->id;
+        $meeting_request->save();
+      }
 
       DB::commit();
 
