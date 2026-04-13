@@ -78,7 +78,7 @@ class Meeting extends Model {
       'event_area_id' => ['required', 'integer', 'exists:event_areas,id'],
       'supplier_id' => ['required', 'integer', 'exists:suppliers,id'],
       'supplier_user_id' => ['required', 'integer', 'exists:supplier_users,id'],
-      'start_time' => ['required', 'date_format:H:i:s'],
+      'start_time' => ['required', 'date_format:H:i'],
       'is_confirmed' => ['nullable', 'boolean'],
     ];
 
@@ -393,7 +393,7 @@ class Meeting extends Model {
       return null;
     }
 
-    return \Carbon\Carbon::createFromFormat('H:i:s', $start_time)
+    return \Carbon\Carbon::createFromFormat('H:i', $start_time)
       ->addMinutes($minutes)
       ->format('H:i:s');
   }
