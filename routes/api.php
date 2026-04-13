@@ -144,6 +144,8 @@ Route::prefix('v1')->group(function () {
 
         Route::get('/catalogs/{catalog}', [CatalogController::class, 'supplierIndex']);
 
+        Route::get('/offer_areas/buyers', [SupplierController::class, 'getMatchedBuyerAreas']);
+
         Route::get('certifications', [CertificationController::class, 'supplierIndex']);
 
         Route::apiResource('/supplier/events/areas', SupplierEventAreaController::class);
