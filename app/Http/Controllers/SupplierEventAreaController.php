@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Concerns\HasActiveToggle;
 use App\Models\BuyerUser;
 use App\Models\SupplierEventArea;
+use App\Models\SupplierUser;
 use DB;
 use Illuminate\Http\Request;
 use Throwable;
@@ -65,6 +66,11 @@ class SupplierEventAreaController extends Controller {
     try {
       $store_mode = is_null($id);
 
+      $supplier_user = SupplierUser::getFirstByUser($request->user()->id);
+      $payload = $request->all();
+      $payload['supplier_id'] = $supplier_user->supplier_id;
+      $payload['supplier_user_id'] = $supplier_user->id;
+
       $valid = SupplierEventArea::validData($request->all());
       if ($valid->fails()) {
         DB::rollBack();
@@ -82,8 +88,6 @@ class SupplierEventAreaController extends Controller {
           return $this->rsp(404, 'Registro no encontrado');
         }
       }
-
-      $payload = $request->all();
 
       $item = SupplierEventArea::saveData($item, $payload);
 

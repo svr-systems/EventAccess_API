@@ -155,6 +155,7 @@ class SupplierEventArea extends Model {
    */
   public static function saveData(self $item, array $data): self {
     $item->supplier_id = Input::toId(data_get($data, 'supplier_id'));
+    $item->supplier_user_id = Input::toId(data_get($data, 'supplier_user_id'));
     $item->event_area_id = Input::toId(data_get($data, 'event_area_id'));
 
     $item->save();
