@@ -97,6 +97,7 @@ Route::prefix('v1')->group(function () {
 
         Route::get('/catalogs/{catalog}', [CatalogController::class, 'buyersIndex']);
 
+        Route::post('/meetings', [MeetingController::class, 'store']);
         Route::get('/meetings/available', [MeetingController::class, 'getAvailableSlots']);
 
         Route::get('/offer_areas/suppliers/{supplier_id}', [SupplierController::class, 'buyerShow']);

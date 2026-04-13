@@ -69,8 +69,17 @@ class MeetingController extends Controller {
       $buyer_user = BuyerUser::getFirstByUser($request->user()->id);
 
       $payload = $request->all();
-      $payload['buyer_user_id'] = $buyer_user?->user_id;
+      $payload['buyer_user_id'] = $buyer_user?->id;
       $payload['buyer_id'] = $buyer_user?->buyer_id;
+
+
+      $event = Event::getItem($payload['event_id'], null);
+      $payload['meeting_time'] = $event->meeting_time;
+
+      $payload['end_time'] = Meeting::calcEndTime(
+        $payload['start_time'],
+        $payload['meeting_time']
+      );
 
       $valid = Meeting::validData($payload);
       if ($valid->fails()) {
@@ -89,8 +98,8 @@ class MeetingController extends Controller {
           return $this->rsp(404, 'Registro no encontrado');
         }
       }
-      
-      $event = Event::getItem($payload['event_id'],null);
+
+      $event = Event::getItem($payload['event_id'], null);
 
       $payload['meeting_time'] = $event->meeting_time;
 

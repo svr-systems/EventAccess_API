@@ -108,7 +108,7 @@ class Meeting extends Model {
       $supplier_id = Input::toId(data_get($data, 'supplier_id'));
       $supplier_user_id = Input::toId(data_get($data, 'supplier_user_id'));
       $start_time = Input::trimOrNull(data_get($data, 'start_time'));
-      $end_time = Input::trimOrNull(data_get($data, 'end_time'));
+      $end_time = Input::trimOrNull(data_get($data, 'end_t$end_time'));
       $buyer_id = Input::toId(data_get($data, 'buyer_id'));
       $buyer_user_id = Input::toId(data_get($data, 'buyer_user_id'));
 
@@ -144,7 +144,7 @@ class Meeting extends Model {
         $exists = \App\Models\SupplierUser::query()
           ->whereKey($supplier_user_id)
           ->where('supplier_id', $supplier_id)
-          ->where('is_active', true)
+          // ->where('is_active', true)
           ->exists();
 
         if (!$exists) {
@@ -159,7 +159,7 @@ class Meeting extends Model {
         $exists = \App\Models\BuyerUser::query()
           ->whereKey($buyer_user_id)
           ->where('buyer_id', $buyer_id)
-          ->where('is_active', true)
+          // ->where('is_active', true)
           ->exists();
 
         if (!$exists) {
@@ -192,6 +192,10 @@ class Meeting extends Model {
         ->where(function ($q) use ($start_time, $end_time) {
           $q->where('start_time', '<', $end_time)
             ->where('end_time', '>', $start_time);
+        })
+        ->where(function ($q) {
+          $q->whereNull('is_confirmed')
+            ->orWhere('is_confirmed', true);
         });
 
       if (!is_null($id)) {
@@ -213,6 +217,10 @@ class Meeting extends Model {
         ->where(function ($q) use ($start_time, $end_time) {
           $q->where('start_time', '<', $end_time)
             ->where('end_time', '>', $start_time);
+        })
+        ->where(function ($q) {
+          $q->whereNull('is_confirmed')
+            ->orWhere('is_confirmed', true);
         });
 
       if (!is_null($id)) {
@@ -223,6 +231,68 @@ class Meeting extends Model {
         $validator->errors()->add(
           'start_time',
           'El proveedor ya tiene una reunión en ese horario.'
+        );
+      }
+
+      $validSupplier = \DB::table('supplier_event_areas')
+        ->join('event_areas', 'event_areas.id', '=', 'supplier_event_areas.event_area_id')
+        ->join('buyer_offer_areas', function ($join) use ($buyer_id) {
+          $join->on('buyer_offer_areas.event_area_id', '=', 'supplier_event_areas.event_area_id')
+            ->where('buyer_offer_areas.buyer_id', $buyer_id)
+            ->where('buyer_offer_areas.is_active', true);
+        })
+        ->where('supplier_event_areas.supplier_id', $supplier_id)
+        ->where('event_areas.event_id', $event_id)
+        ->where('supplier_event_areas.is_active', true)
+        ->where('event_areas.is_active', true)
+        ->exists();
+
+      if (!$validSupplier) {
+        $validator->errors()->add(
+          'supplier_id',
+          'El proveedor no es válido para este comprador en el evento.'
+        );
+      }
+
+      $meeting_time = Input::toInt(data_get($data, 'meeting_time'));
+
+      if ($meeting_time > 0 && !is_null($start_time)) {
+        $minutes = \Carbon\Carbon::createFromFormat('H:i:s', $start_time)->minute;
+
+        if ($minutes % $meeting_time !== 0) {
+          $validator->errors()->add(
+            'start_time',
+            'La hora no es válida según la duración de las reuniones.'
+          );
+        }
+      }
+
+      $validSchedule = \App\Models\BuyerUserSchedule::query()
+        ->where('event_id', $event_id)
+        ->where('presentation_date_id', $presentation_date_id)
+        ->where('buyer_user_id', $buyer_user_id)
+        ->where('is_active', true)
+        ->where('start_time', '<=', $start_time)
+        ->where('end_time', '>=', $end_time)
+        ->exists();
+
+      if (!$validSchedule) {
+        $validator->errors()->add(
+          'start_time',
+          'El horario está fuera de la disponibilidad del comprador.'
+        );
+      }
+
+      $validEventSupplier = \App\Models\EventSupplier::query()
+        ->where('event_id', $event_id)
+        ->where('supplier_id', $supplier_id)
+        ->where('is_active', true)
+        ->exists();
+
+      if (!$validEventSupplier) {
+        $validator->errors()->add(
+          'supplier_id',
+          'El proveedor no está registrado en el evento.'
         );
       }
     });
@@ -288,23 +358,20 @@ class Meeting extends Model {
     $item->supplier_user_id = Input::toId(data_get($data, 'supplier_user_id'));
 
     $item->start_time = Input::trimOrNull(data_get($data, 'start_time'));
+    $item->end_time = Input::trimOrNull(data_get($data, 'end_time'));
 
-    $meeting_time = Input::toInt(data_get($data, 'meeting_time'));
-    $item->end_time = self::calcEndTime($item->start_time, $meeting_time);
-
-    $item->is_confirmed = Input::toBool(data_get($data, 'is_confirmed'), true);
 
     $item->save();
 
     return $item;
   }
 
-  private static function calcEndTime(?string $start_time, int $minutes): ?string {
+  public static function calcEndTime(?string $start_time, int $minutes): ?string {
     if (is_null($start_time) || $minutes <= 0) {
       return null;
     }
 
-    return \Carbon\Carbon::createFromFormat('H:i', $start_time)
+    return \Carbon\Carbon::createFromFormat('H:i:s', $start_time)
       ->addMinutes($minutes)
       ->format('H:i:s');
   }
