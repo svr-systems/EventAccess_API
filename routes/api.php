@@ -100,6 +100,7 @@ Route::prefix('v1')->group(function () {
 
         Route::get('/meetings', [MeetingController::class, 'index']);
         Route::post('/meetings', [MeetingController::class, 'store']);
+        Route::patch('/meetings/reject', [MeetingController::class, 'reject']);
         Route::get('/meetings/available', [MeetingController::class, 'getAvailableSlots']);
         Route::get('/meetings/requests', [MeetingRequestController::class, 'buyerIndex']);
         Route::get('/meetings/requests/{id}', [MeetingRequestController::class, 'buyerShow']);
