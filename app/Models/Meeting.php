@@ -10,6 +10,7 @@ use DB;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Http\Request;
+use NunoMaduro\Collision\Provider;
 use Validator;
 
 class Meeting extends Model {
@@ -41,6 +42,14 @@ class Meeting extends Model {
 
   public function updated_by(): BelongsTo {
     return $this->belongsTo(User::class, 'updated_by_id');
+  }
+
+  public function event_area(): BelongsTo {
+    return $this->belongsTo(EventArea::class, 'event_area_id');
+  }
+
+  public function supplier(): BelongsTo {
+    return $this->belongsTo(Supplier::class, 'supplier_id');
   }
 
   /**
@@ -307,14 +316,22 @@ class Meeting extends Model {
    */
   public static function getItems(Request $request) {
     $is_active = $request->query('is_active', 1);
+    $buyer_user = BuyerUser::getFirstByUser($request->user()->id);
 
     $items = self::query();
 
     $items->select([
-      'meetingd.*'
+      'meetings.*'
     ]);
 
-    $items->where('meetingd.is_active', (bool) ((int) $is_active));
+    $items->with([
+      'event_area:id,name',
+      'supplier:id,name',
+    ]);
+
+    $items->where('meetings.is_active', (bool) ((int) $is_active))->
+      where('buyer_user_id',$buyer_user->id)->
+      where('buyer_id',$buyer_user->buyer_id);
 
     return $items->get();
   }
