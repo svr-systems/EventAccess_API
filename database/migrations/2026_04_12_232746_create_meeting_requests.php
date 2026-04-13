@@ -1,0 +1,34 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+  public function up(): void
+  {
+    Schema::create('meeting_requests', function (Blueprint $table) {
+      $table->id();
+      $table->auditFields();
+
+      $table->foreignId('presentation_date_id')->constrained('presentation_dates');
+      $table->foreignId('event_area_id')->constrained('event_areas');
+
+      $table->foreignId('buyer_id')->constrained('buyers');
+      $table->foreignId('buyer_user_id')->constrained('buyer_users');
+
+      $table->foreignId('supplier_id')->constrained('suppliers');
+      $table->foreignId('supplier_user_id')->constrained('supplier_users');
+
+      $table->foreignId('meeting_id')->nullable()->constrained('meetings');
+
+      $table->boolean('is_approved')->nullable();
+    });
+  }
+
+  public function down(): void
+  {
+    Schema::dropIfExists('meeting_requests');
+  }
+};
