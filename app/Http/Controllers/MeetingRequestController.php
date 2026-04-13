@@ -120,4 +120,20 @@ class MeetingRequestController extends Controller {
       return $this->rsp(500, null, $err);
     }
   }
+
+  public function buyerShow(string $id, Request $request) {
+    try {
+      $item = MeetingRequest::getBuyerItem($id, $request);
+
+      if (is_null($item)) {
+        return $this->rsp(404, 'Registro no encontrado');
+      }
+
+      return $this->rsp(200, 'Registro retornado correctamente', [
+        'item' => $item,
+      ]);
+    } catch (Throwable $err) {
+      return $this->rsp(500, null, $err);
+    }
+  }
 }

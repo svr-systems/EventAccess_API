@@ -289,7 +289,7 @@ class MeetingRequest extends Model {
 
   /**
    * ===========================================
-   * CONSULTAS
+   * CONSULTAS BUYER
    * ===========================================
    */
   public static function getBuyerItems(Request $request) {
@@ -331,5 +331,35 @@ class MeetingRequest extends Model {
       ->orderByDesc('meeting_requests.id');
 
     return $items->get();
+  }
+
+  public static function getBuyerItem($id, Request $request = null) {
+    $buyer_user = BuyerUser::getFirstByUser($request->user()->id);
+
+    if (!$buyer_user) {
+      return null;
+    }
+
+    $item = self::query();
+
+    $item->select(['meeting_requests.*']);
+
+    $item->with([
+      'supplier:id,name',
+      'supplier_user:id,user_id',
+      'supplier_user.user:id,name,paternal_surname,maternal_surname',
+    ]);
+
+    $item->whereKey((int) $id)
+      ->where('meeting_requests.buyer_id', $buyer_user->buyer_id)
+      ->where('meeting_requests.buyer_user_id', $buyer_user->id);
+
+    $item = $item->first();
+
+    if (is_null($item)) {
+      return null;
+    }
+
+    return $item;
   }
 }
