@@ -143,7 +143,10 @@ Route::prefix('v1')->group(function () {
       Route::prefix('suppliers')->group(function () {
 
         Route::get('/catalogs/{catalog}', [CatalogController::class, 'supplierIndex']);
+        
+        Route::post('/meeting/requests', [MeetingRequestController::class, 'store']);
 
+        Route::get('/offer_areas/buyers/{buyer_offer_area_id}', [BuyerOfferAreaController::class, 'supplierShow']);
         Route::get('/offer_areas/buyers', [SupplierController::class, 'getMatchedBuyerAreas']);
 
         Route::get('certifications', [CertificationController::class, 'supplierIndex']);

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Concerns\HasActiveToggle;
 use App\Models\BuyerUser;
 use App\Models\MeetingRequest;
+use App\Models\SupplierUser;
 use DB;
 use Illuminate\Http\Request;
 use Throwable;
@@ -65,13 +66,13 @@ class MeetingRequestController extends Controller {
     try {
       $store_mode = is_null($id);
 
-      $buyer_user = BuyerUser::getFirstByUser($request->user()->id);
+      $supplier_user = SupplierUser::getFirstByUser($request->user()->id);
 
       $payload = $request->all();
-      $payload['buyer_user_id'] = $buyer_user?->id;
-      $payload['buyer_id'] = $buyer_user?->buyer_id;
+      $payload['supplier_user_id'] = $supplier_user?->id;
+      $payload['supplier_id'] = $supplier_user?->supplier_id;
 
-      $valid = MeetingRequest::validData($request->all());
+      $valid = MeetingRequest::validData($payload);
       if ($valid->fails()) {
         DB::rollBack();
         return $this->rsp(422, $valid->errors()->first(), null, $valid->errors()->toArray());
@@ -88,8 +89,6 @@ class MeetingRequestController extends Controller {
           return $this->rsp(404, 'Registro no encontrado');
         }
       }
-
-      $payload = $request->all();
 
       $item = MeetingRequest::saveData($item, $payload);
 

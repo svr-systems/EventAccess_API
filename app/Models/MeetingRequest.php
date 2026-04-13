@@ -130,7 +130,6 @@ class MeetingRequest extends Model {
         $exists = \App\Models\BuyerUser::query()
           ->whereKey($buyer_user_id)
           ->where('buyer_id', $buyer_id)
-          ->where('is_active', true)
           ->exists();
 
         if (!$exists) {
@@ -145,7 +144,6 @@ class MeetingRequest extends Model {
         $exists = \App\Models\SupplierUser::query()
           ->whereKey($supplier_user_id)
           ->where('supplier_id', $supplier_id)
-          ->where('is_active', true)
           ->exists();
 
         if (!$exists) {
@@ -271,6 +269,7 @@ class MeetingRequest extends Model {
    * ===========================================
    */
   public static function saveData(self $item, array $data): self {
+    $item->event_id = Input::toId(data_get($data, 'event_id'));
     $item->presentation_date_id = Input::toId(data_get($data, 'presentation_date_id'));
     $item->event_area_id = Input::toId(data_get($data, 'event_area_id'));
 

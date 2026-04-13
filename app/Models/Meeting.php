@@ -330,15 +330,21 @@ class Meeting extends Model {
 
     $items->with([
       'event_area:id,name',
-      'supplier:id,name',
+      'supplier:id,name,logo_path',
       'presentation_date:id,date',
     ]);
 
     $items->where('meetings.is_active', (bool) ((int) $is_active))->
-      where('buyer_user_id',$buyer_user->id)->
-      where('buyer_id',$buyer_user->buyer_id);
+      where('buyer_user_id', $buyer_user->id)->
+      where('buyer_id', $buyer_user->buyer_id);
 
-    return $items->get();
+    $items = $items->get();
+
+    return $items->map(function ($item) {
+      $item->supplier->appendLogoBase64();
+
+      return $item;
+    });
   }
 
   public static function getItem($id, Request $request = null) {

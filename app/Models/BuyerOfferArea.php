@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Traits\HasAuditFields;
 use App\Support\DisplayId;
 use App\Support\Input;
+use DB;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Http\Request;
@@ -130,7 +131,7 @@ class BuyerOfferArea extends Model {
     ]);
 
     $items->where('buyer_offer_areas.is_active', (bool) ((int) $is_active));
-    
+
     return $items->get();
   }
 
@@ -170,5 +171,104 @@ class BuyerOfferArea extends Model {
     $item->save();
 
     return $item;
+  }
+
+  public static function getShowItem(int $id, Request $request): ?array {
+    $supplier_user = SupplierUser::getFirstByUser($request->user()->id);
+
+    if (!$supplier_user) {
+      return null;
+    }
+
+    $supplier_id = $supplier_user->supplier_id;
+    $supplier_user_id = $supplier_user->id;
+
+    $row = DB::table('buyer_offer_areas')
+      ->select([
+        'buyer_offer_areas.id',
+        'buyer_offer_areas.buyer_id',
+        'buyer_offer_areas.buyer_user_id',
+        'buyer_offer_areas.event_area_id',
+        'buyer_offer_areas.description',
+      ])
+      ->where('buyer_offer_areas.id', $id)
+      ->where('buyer_offer_areas.is_active', true)
+      ->whereExists(function ($query) use ($supplier_id, $supplier_user_id) {
+        $query->selectRaw('1')
+          ->from('supplier_event_areas')
+          ->whereColumn('supplier_event_areas.event_area_id', 'buyer_offer_areas.event_area_id')
+          ->where('supplier_event_areas.supplier_id', $supplier_id)
+          ->where('supplier_event_areas.supplier_user_id', $supplier_user_id)
+          ->where('supplier_event_areas.is_active', true);
+      })
+      ->first();
+
+    if (!$row) {
+      return null;
+    }
+
+    $buyer = Buyer::query()
+      ->select([
+        'id',
+        'name',
+        'logo_path',
+      ])
+      ->where('id', $row->buyer_id)
+      ->where('is_active', true)
+      ->first();
+
+    if ($buyer) {
+      $buyer->appendLogoBase64();
+    }
+
+    $buyer_user = BuyerUser::query()
+      ->select([
+        'buyer_users.id',
+        'buyer_users.buyer_id',
+        'buyer_users.user_id',
+        'users.name',
+        'users.paternal_surname',
+        'users.maternal_surname',
+        'users.email',
+        'users.phone',
+        'users.avatar_path',
+      ])
+      ->join('users', 'users.id', '=', 'buyer_users.user_id')
+      ->where('buyer_users.id', $row->buyer_user_id)
+      ->first();
+
+    $buyer_offer_area = BuyerOfferArea::query()
+      ->select([
+        'id',
+        'buyer_id',
+        'buyer_user_id',
+        'event_area_id',
+        'description',
+      ])
+      ->where('id', $row->id)
+      ->where('is_active', true)
+      ->first();
+
+    $event_area = EventArea::query()
+      ->select([
+        'id',
+        'event_id',
+        'name',
+      ])
+      ->where('id', $row->event_area_id)
+      ->where('is_active', true)
+      ->first();
+
+    return [
+      'id' => $row->id,
+      'buyer_id' => $row->buyer_id,
+      'buyer' => $buyer,
+      'buyer_user_id' => $row->buyer_user_id,
+      'buyer_user' => $buyer_user,
+      'buyer_offer_area_id' => $row->id,
+      'buyer_offer_area' => $buyer_offer_area,
+      'event_area_id' => $row->event_area_id,
+      'event_area' => $event_area,
+    ];
   }
 }

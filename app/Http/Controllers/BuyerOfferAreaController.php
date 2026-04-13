@@ -103,4 +103,26 @@ class BuyerOfferAreaController extends Controller {
       return $this->rsp(500, null, $err);
     }
   }
+
+  /**
+   * ===========================================
+   * CRUD
+   * ===========================================
+   */
+
+  public function supplierShow(string $id, Request $request) {
+    try {
+      $item = BuyerOfferArea::getShowItem($id, $request);
+
+      if (is_null($item)) {
+        return $this->rsp(404, 'Registro no encontrado');
+      }
+
+      return $this->rsp(200, 'Registro retornado correctamente', [
+        'item' => $item,
+      ]);
+    } catch (Throwable $err) {
+      return $this->rsp(500, null, $err);
+    }
+  }
 }
