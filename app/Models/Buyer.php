@@ -60,6 +60,11 @@ class Buyer extends Model {
   public function getDisplayIdAttribute(): string {
     return DisplayId::make('U', $this->id, 4);
   }
+  public function appendLogoBase64() {
+    $this->logo_b64 = StorageMgrService::getBase64($this->logo_path, 'Buyer');
+
+    return $this;
+  }
 
   /**
    * ===========================================
@@ -288,7 +293,7 @@ class Buyer extends Model {
       $supplier_user = $supplier_users[$row->supplier_user_id] ?? null;
 
       // if ($supplier && !isset($supplier->logo_b64) && $supplier->logo_path) {
-        $supplier->appendLogoBase64();
+      $supplier->appendLogoBase64();
       // }
 
       return [

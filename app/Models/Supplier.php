@@ -250,12 +250,11 @@ class Supplier extends Model {
    * CONSULTAS
    * ===========================================
    */
-  public static function getMatchedBuyerAreas(Request $request)
-{
+  public static function getMatchedBuyerAreas(Request $request) {
     $supplier_user = SupplierUser::getFirstByUser($request->user()->id);
 
     if (!$supplier_user) {
-        return collect();
+      return collect();
     }
 
     $supplier_id = $supplier_user->supplier_id;
@@ -263,48 +262,48 @@ class Supplier extends Model {
     $search = trim((string) $request->search);
 
     $items = DB::table('buyer_offer_areas')
-        ->select([
-            'buyer_offer_areas.id',
-            'buyer_offer_areas.buyer_id',
-            'buyer_offer_areas.buyer_user_id',
-            'buyer_offer_areas.event_area_id',
-        ])
-        ->join('buyers', 'buyers.id', '=', 'buyer_offer_areas.buyer_id')
-        ->join('buyer_users', 'buyer_users.id', '=', 'buyer_offer_areas.buyer_user_id')
-        ->join('users', 'users.id', '=', 'buyer_users.user_id')
-        ->join('event_areas', 'event_areas.id', '=', 'buyer_offer_areas.event_area_id')
-        ->where('buyer_offer_areas.is_active', true)
-        ->where('buyers.is_active', true)
-        ->where('event_areas.is_active', true)
-        ->whereExists(function ($query) use ($supplier_id, $supplier_user_id) {
-            $query->selectRaw('1')
-                ->from('supplier_event_areas')
-                ->whereColumn('supplier_event_areas.event_area_id', 'buyer_offer_areas.event_area_id')
-                ->where('supplier_event_areas.supplier_id', $supplier_id)
-                ->where('supplier_event_areas.supplier_user_id', $supplier_user_id)
-                ->where('supplier_event_areas.is_active', true);
-        });
+      ->select([
+        'buyer_offer_areas.id',
+        'buyer_offer_areas.buyer_id',
+        'buyer_offer_areas.buyer_user_id',
+        'buyer_offer_areas.event_area_id',
+      ])
+      ->join('buyers', 'buyers.id', '=', 'buyer_offer_areas.buyer_id')
+      ->join('buyer_users', 'buyer_users.id', '=', 'buyer_offer_areas.buyer_user_id')
+      ->join('users', 'users.id', '=', 'buyer_users.user_id')
+      ->join('event_areas', 'event_areas.id', '=', 'buyer_offer_areas.event_area_id')
+      ->where('buyer_offer_areas.is_active', true)
+      ->where('buyers.is_active', true)
+      ->where('event_areas.is_active', true)
+      ->whereExists(function ($query) use ($supplier_id, $supplier_user_id) {
+        $query->selectRaw('1')
+          ->from('supplier_event_areas')
+          ->whereColumn('supplier_event_areas.event_area_id', 'buyer_offer_areas.event_area_id')
+          ->where('supplier_event_areas.supplier_id', $supplier_id)
+          ->where('supplier_event_areas.supplier_user_id', $supplier_user_id)
+          ->where('supplier_event_areas.is_active', true);
+      });
 
     if ($search !== '') {
-        $items->where(function ($query) use ($search) {
-            $query->where('buyers.name', 'like', '%' . $search . '%')
-                ->orWhere('event_areas.name', 'like', '%' . $search . '%')
-                ->orWhere('users.name', 'like', '%' . $search . '%')
-                ->orWhere('users.paternal_surname', 'like', '%' . $search . '%')
-                ->orWhere('users.maternal_surname', 'like', '%' . $search . '%')
-                ->orWhere('buyer_offer_areas.description', 'like', '%' . $search . '%');
-        });
+      $items->where(function ($query) use ($search) {
+        $query->where('buyers.name', 'like', '%' . $search . '%')
+          ->orWhere('event_areas.name', 'like', '%' . $search . '%')
+          ->orWhere('users.name', 'like', '%' . $search . '%')
+          ->orWhere('users.paternal_surname', 'like', '%' . $search . '%')
+          ->orWhere('users.maternal_surname', 'like', '%' . $search . '%')
+          ->orWhere('buyer_offer_areas.description', 'like', '%' . $search . '%');
+      });
     }
 
     $rows = $items
-        ->distinct()
-        ->orderBy('event_areas.name')
-        ->orderBy('buyers.name')
-        ->orderBy('users.name')
-        ->get();
+      ->distinct()
+      ->orderBy('event_areas.name')
+      ->orderBy('buyers.name')
+      ->orderBy('users.name')
+      ->get();
 
     if ($rows->isEmpty()) {
-        return collect();
+      return collect();
     }
 
     $buyer_ids = $rows->pluck('buyer_id')->unique()->values();
@@ -313,65 +312,68 @@ class Supplier extends Model {
     $event_area_ids = $rows->pluck('event_area_id')->unique()->values();
 
     $buyers = Buyer::query()
-        ->select([
-            'id',
-            'name',
-        ])
-        ->whereIn('id', $buyer_ids)
-        ->get()
-        ->keyBy('id');
+      ->select([
+        'id',
+        'name',
+        'logo_path'
+      ])
+      ->whereIn('id', $buyer_ids)
+      ->get()
+      ->keyBy('id');
 
     $buyer_users = BuyerUser::query()
-        ->select([
-            'buyer_users.id',
-            'buyer_users.buyer_id',
-            'buyer_users.user_id',
-            'users.name',
-            'users.paternal_surname',
-            'users.maternal_surname',
-            'users.email',
-            'users.phone',
-            'users.avatar_path',
-        ])
-        ->join('users', 'users.id', '=', 'buyer_users.user_id')
-        ->whereIn('buyer_users.id', $buyer_user_ids)
-        ->get()
-        ->keyBy('id');
+      ->select([
+        'buyer_users.id',
+        'buyer_users.buyer_id',
+        'buyer_users.user_id',
+        'users.name',
+        'users.paternal_surname',
+        'users.maternal_surname',
+        'users.email',
+        'users.phone',
+        'users.avatar_path',
+      ])
+      ->join('users', 'users.id', '=', 'buyer_users.user_id')
+      ->whereIn('buyer_users.id', $buyer_user_ids)
+      ->get()
+      ->keyBy('id');
 
     $buyer_offer_areas = BuyerOfferArea::query()
-        ->select([
-            'id',
-            'buyer_id',
-            'buyer_user_id',
-            'event_area_id',
-            'description',
-        ])
-        ->whereIn('id', $buyer_offer_area_ids)
-        ->get()
-        ->keyBy('id');
+      ->select([
+        'id',
+        'buyer_id',
+        'buyer_user_id',
+        'event_area_id',
+        'description',
+      ])
+      ->whereIn('id', $buyer_offer_area_ids)
+      ->get()
+      ->keyBy('id');
 
     $event_areas = EventArea::query()
-        ->select([
-            'id',
-            'event_id',
-            'name',
-        ])
-        ->whereIn('id', $event_area_ids)
-        ->get()
-        ->keyBy('id');
+      ->select([
+        'id',
+        'event_id',
+        'name',
+      ])
+      ->whereIn('id', $event_area_ids)
+      ->get()
+      ->keyBy('id');
 
     return $rows->map(function ($row) use ($buyers, $buyer_users, $buyer_offer_areas, $event_areas) {
-        return [
-            'id' => $row->id,
-            'buyer_id' => $row->buyer_id,
-            'buyer' => $buyers[$row->buyer_id] ?? null,
-            'buyer_user_id' => $row->buyer_user_id,
-            'buyer_user' => $buyer_users[$row->buyer_user_id] ?? null,
-            'buyer_offer_area_id' => $row->id,
-            'buyer_offer_area' => $buyer_offer_areas[$row->id] ?? null,
-            'event_area_id' => $row->event_area_id,
-            'event_area' => $event_areas[$row->event_area_id] ?? null,
-        ];
+      $buyer = $buyers[$row->buyer_id] ?? null;
+      $buyer->appendLogoBase64();
+      return [
+        'id' => $row->id,
+        'buyer_id' => $row->buyer_id,
+        'buyer' => $buyer,
+        'buyer_user_id' => $row->buyer_user_id,
+        'buyer_user' => $buyer_users[$row->buyer_user_id] ?? null,
+        'buyer_offer_area_id' => $row->id,
+        'buyer_offer_area' => $buyer_offer_areas[$row->id] ?? null,
+        'event_area_id' => $row->event_area_id,
+        'event_area' => $event_areas[$row->event_area_id] ?? null,
+      ];
     })->values();
-}
+  }
 }
