@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\HasActiveToggle;
+use App\Models\BuyerUser;
 use App\Models\EventSupplier;
 use App\Models\Supplier;
 use App\Models\SupplierCertification;

@@ -197,9 +197,12 @@ class Buyer extends Model {
       ->select([
         'supplier_event_areas.id',
         'supplier_event_areas.supplier_id',
+        'supplier_event_areas.supplier_user_id',
         'supplier_event_areas.event_area_id',
       ])
       ->join('suppliers', 'suppliers.id', '=', 'supplier_event_areas.supplier_id')
+      ->join('supplier_users', 'supplier_users.id', '=', 'supplier_event_areas.supplier_user_id')
+      ->join('users', 'users.id', '=', 'supplier_users.user_id')
       ->join('event_areas', 'event_areas.id', '=', 'supplier_event_areas.event_area_id')
       ->where('supplier_event_areas.is_active', true)
       ->where('suppliers.is_active', true)
@@ -217,7 +220,11 @@ class Buyer extends Model {
         $query->where('suppliers.name', 'like', '%' . $search . '%')
           ->orWhere('suppliers.description', 'like', '%' . $search . '%')
           ->orWhere('suppliers.website_url', 'like', '%' . $search . '%')
-          ->orWhere('event_areas.name', 'like', '%' . $search . '%');
+          ->orWhere('event_areas.name', 'like', '%' . $search . '%')
+          ->orWhere('users.name', 'like', '%' . $search . '%')
+          ->orWhere('users.paternal_surname', 'like', '%' . $search . '%')
+          ->orWhere('users.maternal_surname', 'like', '%' . $search . '%')
+          ->orWhere('users.email', 'like', '%' . $search . '%');
       });
     }
 
@@ -225,6 +232,7 @@ class Buyer extends Model {
       ->distinct()
       ->orderBy('event_areas.name')
       ->orderBy('suppliers.name')
+      ->orderBy('users.name')
       ->get();
 
     if ($rows->isEmpty()) {
@@ -232,6 +240,7 @@ class Buyer extends Model {
     }
 
     $supplier_ids = $rows->pluck('supplier_id')->unique()->values();
+    $supplier_user_ids = $rows->pluck('supplier_user_id')->unique()->values();
     $event_area_ids = $rows->pluck('event_area_id')->unique()->values();
 
     $suppliers = Supplier::query()
@@ -257,15 +266,37 @@ class Buyer extends Model {
       ->get()
       ->keyBy('id');
 
-    return $rows->map(function ($row) use ($suppliers, $event_areas) {
-      $supplier = $suppliers[$row->supplier_id] ?? null;
+    $supplier_users = SupplierUser::query()
+      ->select([
+        'supplier_users.id',
+        'supplier_users.supplier_id',
+        'supplier_users.user_id',
+        'users.name',
+        'users.paternal_surname',
+        'users.maternal_surname',
+        'users.avatar_path',
+        'users.email',
+        'users.phone',
+      ])
+      ->join('users', 'users.id', '=', 'supplier_users.user_id')
+      ->whereIn('supplier_users.id', $supplier_user_ids)
+      ->get()
+      ->keyBy('id');
 
-      $supplier->appendLogoBase64();
+    return $rows->map(function ($row) use ($suppliers, $supplier_users, $event_areas) {
+      $supplier = $suppliers[$row->supplier_id] ?? null;
+      $supplier_user = $supplier_users[$row->supplier_user_id] ?? null;
+
+      // if ($supplier && !isset($supplier->logo_b64) && $supplier->logo_path) {
+        $supplier->appendLogoBase64();
+      // }
 
       return [
         'id' => $row->id,
         'supplier_id' => $row->supplier_id,
         'supplier' => $supplier,
+        'supplier_user_id' => $row->supplier_user_id,
+        'supplier_user' => $supplier_user,
         'event_area_id' => $row->event_area_id,
         'event_area' => $event_areas[$row->event_area_id] ?? null,
       ];

@@ -52,6 +52,10 @@ class Meeting extends Model {
     return $this->belongsTo(Supplier::class, 'supplier_id');
   }
 
+  public function presentation_date(): BelongsTo {
+    return $this->belongsTo(PresentationDate::class, 'presentation_date_id');
+  }
+
   /**
    * ===========================================
    * ACCESSORES
@@ -327,6 +331,7 @@ class Meeting extends Model {
     $items->with([
       'event_area:id,name',
       'supplier:id,name',
+      'presentation_date:id,date',
     ]);
 
     $items->where('meetings.is_active', (bool) ((int) $is_active))->

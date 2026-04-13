@@ -101,7 +101,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/meetings', [MeetingController::class, 'store']);
         Route::get('/meetings/available', [MeetingController::class, 'getAvailableSlots']);
 
-        Route::get('/offer_areas/suppliers/{supplier_id}', [SupplierController::class, 'buyerShow']);
+        Route::get('/offer_areas/suppliers/{supplier_event_area_id}', [SupplierEventAreaController::class, 'buyerShow']);
         Route::get('/offer_areas/suppliers', [BuyerController::class, 'getMatchedSupplierAreas']);
 
         Route::get('/profile', [BuyerController::class, 'show']);

@@ -130,29 +130,4 @@ class SupplierController extends Controller {
       return $this->rsp(500, null, $err);
     }
   }
-
-  /**
-   * ===========================================
-   * BUYERS
-   * ===========================================
-   */
-
-  public function buyerShow(Request $request,$supplier_id) {
-    try {
-      $buyer_user = BuyerUser::getFirstByUser($request->user()->id);
-      $buyer_id = $buyer_user->buyer_id;
-
-      $item = Supplier::publicGgetByIdForBuyer($supplier_id,$buyer_id);
-
-      if (is_null($item)) {
-        return $this->rsp(404, 'Registro no encontrado');
-      }
-
-      return $this->rsp(200, 'Registro retornado correctamente', [
-        'item' => $item,
-      ]);
-    } catch (Throwable $err) {
-      return $this->rsp(500, null, $err);
-    }
-  }
 }

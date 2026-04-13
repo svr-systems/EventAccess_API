@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\HasActiveToggle;
+use App\Models\BuyerUser;
 use App\Models\SupplierEventArea;
 use DB;
 use Illuminate\Http\Request;
@@ -95,6 +96,31 @@ class SupplierEventAreaController extends Controller {
       );
     } catch (Throwable $err) {
       DB::rollBack();
+      return $this->rsp(500, null, $err);
+    }
+  }
+
+  /**
+   * ===========================================
+   * BUYERS
+   * ===========================================
+   */
+
+  public function buyerShow(Request $request,$id) {
+    try {
+      $buyer_user = BuyerUser::getFirstByUser($request->user()->id);
+      $buyer_id = $buyer_user->buyer_id;
+
+      $item = SupplierEventArea::publicGetByIdForBuyer($id,$buyer_id);
+
+      if (is_null($item)) {
+        return $this->rsp(404, 'Registro no encontrado');
+      }
+
+      return $this->rsp(200, 'Registro retornado correctamente', [
+        'item' => $item,
+      ]);
+    } catch (Throwable $err) {
       return $this->rsp(500, null, $err);
     }
   }
