@@ -163,6 +163,7 @@ class BuyerOfferArea extends Model {
    */
   public static function saveData(self $item, array $data): self {
     $item->buyer_id = Input::toId(data_get($data, 'buyer_id'));
+    $item->buyer_user_id = Input::toId(data_get($data, 'buyer_user_id'));
     $item->event_area_id = Input::toId(data_get($data, 'event_area_id'));
     $item->description = Input::toText(data_get($data, 'description'));
 

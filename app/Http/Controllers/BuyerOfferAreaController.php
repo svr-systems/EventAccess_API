@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Concerns\HasActiveToggle;
 use App\Models\Buyer;
 use App\Models\BuyerOfferArea;
+use App\Models\BuyerUser;
 use DB;
 use Illuminate\Http\Request;
 use Throwable;
@@ -83,8 +84,10 @@ class BuyerOfferAreaController extends Controller {
         }
       }
 
+      $buyer_user = BuyerUser::getFirstByUser($request->user()->id);
       $payload = $request->all();
-      $payload['buyer_id'] = Buyer::getItem($request)->id;
+      $payload['buyer_id'] = $buyer_user->buyer_id;
+      $payload['buyer_user_id'] = $buyer_user->id;
 
       $item = BuyerOfferArea::saveData($item, $payload);
 
