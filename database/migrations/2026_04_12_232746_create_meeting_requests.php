@@ -12,6 +12,7 @@ return new class extends Migration
       $table->id();
       $table->auditFields();
 
+      $table->foreignId('event_id')->constrained('events');
       $table->foreignId('presentation_date_id')->constrained('presentation_dates');
       $table->foreignId('event_area_id')->constrained('event_areas');
 

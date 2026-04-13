@@ -16,6 +16,7 @@ use App\Http\Controllers\EventMeetingWindowController;
 use App\Http\Controllers\EventStandConfigController;
 use App\Http\Controllers\EventSupplierController;
 use App\Http\Controllers\MeetingController;
+use App\Http\Controllers\MeetingRequestController;
 use App\Http\Controllers\OfferController;
 use App\Http\Controllers\PresentationDateController;
 use App\Http\Controllers\PresentationTicketController;
@@ -100,6 +101,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/meetings', [MeetingController::class, 'index']);
         Route::post('/meetings', [MeetingController::class, 'store']);
         Route::get('/meetings/available', [MeetingController::class, 'getAvailableSlots']);
+        Route::get('/meetings/requests', [MeetingRequestController::class, 'buyerIndex']);
 
         Route::get('/offer_areas/suppliers/{supplier_event_area_id}', [SupplierEventAreaController::class, 'buyerShow']);
         Route::get('/offer_areas/suppliers', [BuyerController::class, 'getMatchedSupplierAreas']);

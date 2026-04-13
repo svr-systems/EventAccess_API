@@ -41,6 +41,14 @@ class MeetingRequest extends Model {
     return $this->belongsTo(User::class, 'updated_by_id');
   }
 
+  public function supplier_user(): BelongsTo {
+    return $this->belongsTo(SupplierUser::class, 'supplier_user_id');
+  }
+
+  public function supplier(): BelongsTo {
+    return $this->belongsTo(Supplier::class, 'supplier_id');
+  }
+
   /**
    * ===========================================
    * ACCESSORES
@@ -58,6 +66,7 @@ class MeetingRequest extends Model {
   public static function validData(array $data) {
     $rules = [
       'id' => ['nullable', 'integer'],
+      'event_id' => ['required', 'integer', 'exists:events,id'],
       'presentation_date_id' => ['required', 'integer', 'exists:presentation_dates,id'],
       'event_area_id' => ['required', 'integer', 'exists:event_areas,id'],
       'buyer_id' => ['required', 'integer', 'exists:buyers,id'],
@@ -70,6 +79,10 @@ class MeetingRequest extends Model {
 
     $msgs = [
       'id.integer' => 'El identificador debe ser válido.',
+
+      'event_id.required' => 'El evento es obligatorio.',
+      'event_id.integer' => 'El evento debe ser un identificador válido.',
+      'event_id.exists' => 'El evento seleccionado no es válido.',
 
       'presentation_date_id.required' => 'La fecha de presentación es obligatoria.',
       'presentation_date_id.integer' => 'La fecha de presentación debe ser un identificador válido.',
@@ -105,6 +118,7 @@ class MeetingRequest extends Model {
 
     $validator->after(function ($validator) use ($data) {
       $id = Input::toId(data_get($data, 'id'));
+      $event_id = Input::toId(data_get($data, 'event_id'));
       $presentation_date_id = Input::toId(data_get($data, 'presentation_date_id'));
       $event_area_id = Input::toId(data_get($data, 'event_area_id'));
       $buyer_id = Input::toId(data_get($data, 'buyer_id'));
@@ -142,26 +156,36 @@ class MeetingRequest extends Model {
         }
       }
 
-      if (!is_null($presentation_date_id) && !is_null($event_area_id)) {
-        $presentation_date = \App\Models\PresentationDate::query()
-          ->select(['id', 'event_id'])
+      if (!is_null($presentation_date_id) && !is_null($event_id)) {
+        $exists = \App\Models\PresentationDate::query()
           ->whereKey($presentation_date_id)
-          ->first();
+          ->where('event_id', $event_id)
+          ->exists();
 
-        $event_area = \App\Models\EventArea::query()
-          ->select(['id', 'event_id'])
+        if (!$exists) {
+          $validator->errors()->add(
+            'presentation_date_id',
+            'La fecha de presentación no pertenece al evento seleccionado.'
+          );
+        }
+      }
+
+      if (!is_null($event_area_id) && !is_null($event_id)) {
+        $exists = \App\Models\EventArea::query()
           ->whereKey($event_area_id)
-          ->first();
+          ->where('event_id', $event_id)
+          ->exists();
 
-        if ($presentation_date && $event_area && $presentation_date->event_id !== $event_area->event_id) {
+        if (!$exists) {
           $validator->errors()->add(
             'event_area_id',
-            'El área del evento no pertenece al mismo evento que la fecha de presentación.'
+            'El área del evento no pertenece al evento seleccionado.'
           );
         }
       }
 
       if (
+        is_null($event_id) ||
         is_null($presentation_date_id) ||
         is_null($event_area_id) ||
         is_null($buyer_id) ||
@@ -171,6 +195,7 @@ class MeetingRequest extends Model {
       }
 
       $query = self::query()
+        ->where('event_id', $event_id)
         ->where('presentation_date_id', $presentation_date_id)
         ->where('event_area_id', $event_area_id)
         ->where('buyer_id', $buyer_id)
@@ -184,7 +209,7 @@ class MeetingRequest extends Model {
       if ($query->exists()) {
         $validator->errors()->add(
           'supplier_id',
-          'Ya existe una petición activa para este proveedor en esa fecha y área.'
+          'Ya existe una petición activa para este proveedor en ese evento, fecha y área.'
         );
       }
     });
@@ -260,5 +285,51 @@ class MeetingRequest extends Model {
     $item->save();
 
     return $item;
+  }
+
+  /**
+   * ===========================================
+   * CONSULTAS
+   * ===========================================
+   */
+  public static function getBuyerItems(Request $request) {
+    $is_active = $request->query('is_active', 1);
+    $buyer_user = BuyerUser::getFirstByUser($request->user()->id);
+
+    if (!$buyer_user) {
+      return collect();
+    }
+
+    $items = self::query();
+
+    $items->select([
+      'meeting_requests.id',
+      'meeting_requests.is_active',
+      'meeting_requests.event_id',
+      'meeting_requests.presentation_date_id',
+      'meeting_requests.event_area_id',
+      'meeting_requests.buyer_id',
+      'meeting_requests.buyer_user_id',
+      'meeting_requests.supplier_id',
+      'meeting_requests.supplier_user_id',
+      'meeting_requests.meeting_id',
+      'meeting_requests.is_approved',
+      'meeting_requests.created_at',
+    ]);
+
+    $items->with([
+      'supplier:id,name',
+      'supplier_user:id,user_id',
+      'supplier_user.user:id,name,paternal_surname,maternal_surname',
+    ]);
+
+    $items->where('meeting_requests.is_active', (bool) ((int) $is_active))
+      ->where('meeting_requests.event_id', (int) $request->event_id)
+      ->where('meeting_requests.buyer_id', $buyer_user->buyer_id)
+      ->where('meeting_requests.buyer_user_id', $buyer_user->id)
+      ->whereNull('meeting_requests.is_approved')
+      ->orderByDesc('meeting_requests.id');
+
+    return $items->get();
   }
 }
