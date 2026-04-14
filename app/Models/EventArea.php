@@ -156,14 +156,19 @@ class EventArea extends Model {
       'event_areas.is_active',
       'event_areas.event_id',
       'event_areas.name',
-      DB::raw('CASE WHEN supplier_event_areas.id IS NULL THEN false ELSE true END as is_checked'),
+      DB::raw('
+        CASE 
+            WHEN supplier_event_areas.id IS NULL THEN 0
+            WHEN supplier_event_areas.is_active = 0 THEN 0
+            ELSE 1
+        END as is_checked
+    '),
     ]);
 
     $items->leftJoin('supplier_event_areas', function ($join) use ($supplier_user) {
       $join->on('supplier_event_areas.event_area_id', '=', 'event_areas.id')
         ->where('supplier_event_areas.supplier_id', '=', $supplier_user->supplier_id)
-        ->where('supplier_event_areas.supplier_user_id', '=', $supplier_user->id)
-        ->where('supplier_event_areas.is_active', '=', true);
+        ->where('supplier_event_areas.supplier_user_id', '=', $supplier_user->id);
     });
 
     $items->where('event_areas.is_active', true)

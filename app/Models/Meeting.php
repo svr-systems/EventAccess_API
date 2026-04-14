@@ -392,6 +392,8 @@ class Meeting extends Model {
     $item->start_time = Input::trimOrNull(data_get($data, 'start_time'));
     $item->end_time = Input::trimOrNull(data_get($data, 'end_time'));
 
+    $item->is_confirmed = true;
+
 
     $item->save();
 
