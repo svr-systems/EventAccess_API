@@ -8,10 +8,10 @@ return new class extends Migration {
   public function up(): void {
     Schema::table('supplier_event_areas', function (Blueprint $table) {
       $table->foreignId('supplier_user_id')
-        ->nullable()
-        ->default(1)
         ->after('supplier_id')
         ->constrained('supplier_users');
+    
+      $table->unique(['supplier_id','supplier_user_id', 'event_area_id'],'uq_s_su_ea');
     });
   }
 

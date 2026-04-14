@@ -8,10 +8,10 @@ return new class extends Migration {
   public function up(): void {
     Schema::table('buyer_offer_areas', function (Blueprint $table) {
       $table->foreignId('buyer_user_id')
-        ->nullable()
-        ->default(1)
         ->after('buyer_id')
         ->constrained('buyer_users');
+
+      $table->unique(['buyer_id','buyer_user_id', 'event_area_id'],'uq_b_bu_ea');
     });
   }
 
