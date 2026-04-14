@@ -75,7 +75,6 @@ class MeetingRequest extends Model {
     $rules = [
       'id' => ['nullable', 'integer'],
       'event_id' => ['required', 'integer', 'exists:events,id'],
-      'presentation_date_id' => ['required', 'integer', 'exists:presentation_dates,id'],
       'event_area_id' => ['required', 'integer', 'exists:event_areas,id'],
       'buyer_id' => ['required', 'integer', 'exists:buyers,id'],
       'buyer_user_id' => ['required', 'integer', 'exists:buyer_users,id'],
@@ -91,10 +90,6 @@ class MeetingRequest extends Model {
       'event_id.required' => 'El evento es obligatorio.',
       'event_id.integer' => 'El evento debe ser un identificador válido.',
       'event_id.exists' => 'El evento seleccionado no es válido.',
-
-      'presentation_date_id.required' => 'La fecha de presentación es obligatoria.',
-      'presentation_date_id.integer' => 'La fecha de presentación debe ser un identificador válido.',
-      'presentation_date_id.exists' => 'La fecha de presentación seleccionada no es válida.',
 
       'event_area_id.required' => 'El área del evento es obligatoria.',
       'event_area_id.integer' => 'El área del evento debe ser un identificador válido.',
@@ -127,7 +122,6 @@ class MeetingRequest extends Model {
     $validator->after(function ($validator) use ($data) {
       $id = Input::toId(data_get($data, 'id'));
       $event_id = Input::toId(data_get($data, 'event_id'));
-      $presentation_date_id = Input::toId(data_get($data, 'presentation_date_id'));
       $event_area_id = Input::toId(data_get($data, 'event_area_id'));
       $buyer_id = Input::toId(data_get($data, 'buyer_id'));
       $buyer_user_id = Input::toId(data_get($data, 'buyer_user_id'));
@@ -162,20 +156,6 @@ class MeetingRequest extends Model {
         }
       }
 
-      if (!is_null($presentation_date_id) && !is_null($event_id)) {
-        $exists = \App\Models\PresentationDate::query()
-          ->whereKey($presentation_date_id)
-          ->where('event_id', $event_id)
-          ->exists();
-
-        if (!$exists) {
-          $validator->errors()->add(
-            'presentation_date_id',
-            'La fecha de presentación no pertenece al evento seleccionado.'
-          );
-        }
-      }
-
       if (!is_null($event_area_id) && !is_null($event_id)) {
         $exists = \App\Models\EventArea::query()
           ->whereKey($event_area_id)
@@ -192,7 +172,6 @@ class MeetingRequest extends Model {
 
       if (
         is_null($event_id) ||
-        is_null($presentation_date_id) ||
         is_null($event_area_id) ||
         is_null($buyer_id) ||
         is_null($supplier_id)
@@ -202,7 +181,6 @@ class MeetingRequest extends Model {
 
       $query = self::query()
         ->where('event_id', $event_id)
-        ->where('presentation_date_id', $presentation_date_id)
         ->where('event_area_id', $event_area_id)
         ->where('buyer_id', $buyer_id)
         ->where('supplier_id', $supplier_id)
@@ -289,7 +267,6 @@ class MeetingRequest extends Model {
    */
   public static function saveData(self $item, array $data): self {
     $item->event_id = Input::toId(data_get($data, 'event_id'));
-    $item->presentation_date_id = Input::toId(data_get($data, 'presentation_date_id'));
     $item->event_area_id = Input::toId(data_get($data, 'event_area_id'));
 
     $item->buyer_id = Input::toId(data_get($data, 'buyer_id'));
@@ -324,7 +301,6 @@ class MeetingRequest extends Model {
       'meeting_requests.id',
       'meeting_requests.is_active',
       'meeting_requests.event_id',
-      'meeting_requests.presentation_date_id',
       'meeting_requests.event_area_id',
       'meeting_requests.buyer_id',
       'meeting_requests.buyer_user_id',
