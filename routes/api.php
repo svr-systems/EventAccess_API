@@ -127,9 +127,9 @@ Route::prefix('v1')->group(function () {
 
         Route::get('/events/buyer', [EventBuyerController::class, 'index']);
         
-        Route::get('/events/areas', [EventAreaController::class, 'supplierIndex']);
+        Route::get('/events/areas', [EventAreaController::class, 'buyerIndex']);
 
-        Route::get('events/{id}', [EventController::class, 'supplierShow']);
+        Route::get('events/{id}', [EventController::class, 'buyerShow']);
 
       });
     });
