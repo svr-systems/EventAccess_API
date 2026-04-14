@@ -159,7 +159,7 @@ class MeetingController extends Controller {
 
   /**
    * ===========================================
-   * CRUD
+   * CRUD Supplier
    * ===========================================
    */
   public function supplierIndex(Request $request) {
@@ -168,6 +168,28 @@ class MeetingController extends Controller {
         'items' => Meeting::getSupplierItems($request),
       ]);
     } catch (Throwable $err) {
+      return $this->rsp(500, null, $err);
+    }
+  }
+
+  public function supplierConfirm(Request $request) {
+    DB::beginTransaction();
+
+    try {
+      
+      $meeting = Meeting::find($request->id);
+      $meeting->is_confirmed = $request->is_confirmed;
+      $meeting->save();
+
+      DB::commit();
+
+      return $this->rsp(
+        200,
+        'Registro actualizado correctamente',
+        null
+      );
+    } catch (Throwable $err) {
+      DB::rollBack();
       return $this->rsp(500, null, $err);
     }
   }

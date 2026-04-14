@@ -146,6 +146,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/catalogs/{catalog}', [CatalogController::class, 'supplierIndex']);
         
         Route::get('/meetings', [MeetingController::class, 'supplierIndex']);
+        Route::patch('/meetings/confirm', [MeetingController::class, 'supplierConfirm']);
 
         Route::post('/meeting/requests', [MeetingRequestController::class, 'store']);
 
