@@ -49,6 +49,14 @@ class MeetingRequest extends Model {
     return $this->belongsTo(Supplier::class, 'supplier_id');
   }
 
+  public function buyer_user(): BelongsTo {
+    return $this->belongsTo(BuyerUser::class, 'buyer_user_id');
+  }
+
+  public function buyer(): BelongsTo {
+    return $this->belongsTo(Buyer::class, 'buyer_id');
+  }
+
   /**
    * ===========================================
    * ACCESSORES
@@ -223,22 +231,33 @@ class MeetingRequest extends Model {
   public static function getItems(Request $request) {
     $is_active = $request->query('is_active', 1);
 
+
+    $supplier_user = SupplierUser::getFirstByUser($request->user()->id);
+
     $items = self::query();
 
     $items->select([
-      'meeting_requests.id',
-      'meeting_requests.is_active',
-      'meeting_requests.stand_type_id',
-      'meeting_requests.supplier_id',
-      'meeting_requests.event_id',
-      'meeting_requests.description',
+      'meeting_requests.*'
+    ]);
+
+    $items->with([
+      'buyer:id,name,logo_path',
+      'buyer_user:id,user_id',
+      'buyer_user:id,name,paternal_surname,maternal_surname'
     ]);
 
     $items->where('meeting_requests.is_active', (bool) ((int) $is_active))->
-      where('meeting_requests.event_id', $request->event_id)->
-      where('meeting_requests.supplier_id', $request->supplier_id);
+      where('supplier_user_id', $supplier_user->id)->
+      where('supplier_id', $supplier_user->supplier_id)->
+      where('event_id', $request->event_id);
 
-    return $items->get();
+    $items = $items->get();
+
+    return $items->map(function ($item) {
+      $item->buyer->appendLogoBase64();
+
+      return $item;
+    });
   }
 
   public static function getItem($id, Request $request = null) {

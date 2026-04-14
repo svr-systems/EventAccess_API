@@ -148,6 +148,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/meetings', [MeetingController::class, 'supplierIndex']);
         Route::patch('/meetings/confirm', [MeetingController::class, 'supplierConfirm']);
 
+        Route::get('/meeting/requests', [MeetingRequestController::class, 'index']);
         Route::post('/meeting/requests', [MeetingRequestController::class, 'store']);
 
         Route::get('/offer_areas/buyers/{buyer_offer_area_id}', [BuyerOfferAreaController::class, 'supplierShow']);

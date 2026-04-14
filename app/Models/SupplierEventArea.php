@@ -113,6 +113,8 @@ class SupplierEventArea extends Model {
   public static function getItems(Request $request) {
     $is_active = $request->query('is_active', 1);
 
+    $supplier_user = SupplierUser::getFirstByUser($request->user()->id);
+
     $items = self::query();
 
     $items->select([
@@ -123,7 +125,8 @@ class SupplierEventArea extends Model {
     ]);
 
     $items->where('supplier_event_areas.is_active', (bool) ((int) $is_active))->
-      where('supplier_event_areas.supplier_id', $request->supplier_id);
+      where('supplier_event_areas.supplier_id', $supplier_user->supplier_id)->
+      where('supplier_event_areas.supplier_user_id', $supplier_user->id);
 
     return $items->get();
   }
