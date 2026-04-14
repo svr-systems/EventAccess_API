@@ -64,19 +64,27 @@ class SupplierEventAreaController extends Controller {
     DB::beginTransaction();
 
     try {
+      $is_active = true;
+      $supplier_user = SupplierEventArea::getItemByEvenArea($request->event_area_id, $request);
+
+      if ($supplier_user) {
+        $id = $supplier_user->id;
+        $is_active = !$supplier_user->is_active;
+      }
+
       $store_mode = is_null($id);
 
       $supplier_user = SupplierUser::getFirstByUser($request->user()->id);
       $payload = $request->all();
       $payload['supplier_id'] = $supplier_user->supplier_id;
       $payload['supplier_user_id'] = $supplier_user->id;
+      $payload['is_active'] = $is_active;
 
-      $valid = SupplierEventArea::validData($request->all());
+      $valid = SupplierEventArea::validData($payload);
       if ($valid->fails()) {
         DB::rollBack();
         return $this->rsp(422, $valid->errors()->first(), null, $valid->errors()->toArray());
       }
-
 
       if ($store_mode) {
         $item = new SupplierEventArea();
@@ -96,7 +104,7 @@ class SupplierEventAreaController extends Controller {
       return $this->rsp(
         $store_mode ? 201 : 200,
         'Registro ' . ($store_mode ? 'agregado' : 'editado') . ' correctamente',
-        $store_mode ? ['item' => ['id' => $item->id]] : null
+        ['item' => $item]
       );
     } catch (Throwable $err) {
       DB::rollBack();
@@ -110,12 +118,12 @@ class SupplierEventAreaController extends Controller {
    * ===========================================
    */
 
-  public function buyerShow(Request $request,$id) {
+  public function buyerShow(Request $request, $id) {
     try {
       $buyer_user = BuyerUser::getFirstByUser($request->user()->id);
       $buyer_id = $buyer_user->buyer_id;
 
-      $item = SupplierEventArea::publicGetByIdForBuyer($id,$buyer_id);
+      $item = SupplierEventArea::publicGetByIdForBuyer($id, $buyer_id);
 
       if (is_null($item)) {
         return $this->rsp(404, 'Registro no encontrado');

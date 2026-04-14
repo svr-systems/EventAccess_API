@@ -156,8 +156,7 @@ Route::prefix('v1')->group(function () {
 
         Route::get('certifications', [CertificationController::class, 'supplierIndex']);
 
-        Route::apiResource('/supplier/events/areas', SupplierEventAreaController::class);
-        Route::patch('/supplier/events/areas/{id}/activate', [SupplierEventAreaController::class, 'activate']);
+        Route::post('/events/areas', [SupplierEventAreaController::class, 'store']);
         Route::get('/events/areas', [EventAreaController::class, 'supplierIndex']);
 
         Route::get('/stand_allocations', [StandAllocationController::class, 'index']);

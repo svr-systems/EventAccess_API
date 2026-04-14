@@ -94,12 +94,6 @@ class SupplierEventArea extends Model {
         $query->where('id', '<>', $id);
       }
 
-      if ($query->exists()) {
-        $validator->errors()->add(
-          'event_area_id',
-          'El proveedor ya tiene asignada esta área del evento.'
-        );
-      }
     });
 
     return $validator;
@@ -151,12 +145,33 @@ class SupplierEventArea extends Model {
     return $item;
   }
 
+  public static function getItemByEvenArea($id, Request $request = null) {
+    $supplier_user = SupplierUser::getFirstByUser($request->user()->id);
+
+    $item = self::query();
+
+    $item->select(['supplier_event_areas.*']);
+
+    $item->where('event_area_id',$id)->
+      where('supplier_id',$supplier_user->supplier_id)->
+      where('supplier_user_id',$supplier_user->id);
+
+    $item = $item->first();
+
+    if (is_null($item)) {
+      return null;
+    }
+
+    return $item;
+  }
+
   /**
    * ===========================================
    * GUARDADO DE DATOS
    * ===========================================
    */
   public static function saveData(self $item, array $data): self {
+    $item->is_active = Input::toBool(data_get($data, 'is_active'));
     $item->supplier_id = Input::toId(data_get($data, 'supplier_id'));
     $item->supplier_user_id = Input::toId(data_get($data, 'supplier_user_id'));
     $item->event_area_id = Input::toId(data_get($data, 'event_area_id'));

@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Traits\HasAuditFields;
 use App\Support\DisplayId;
 use App\Support\Input;
+use DB;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Http\Request;
@@ -142,17 +143,34 @@ class EventArea extends Model {
    * ===========================================
    */
   public static function getSupplierItems(Request $request) {
+    $supplier_user = SupplierUser::getFirstByUser($request->user()->id);
+
+    if (!$supplier_user) {
+      return collect();
+    }
 
     $items = self::query();
 
     $items->select([
       'event_areas.id',
+      'event_areas.is_active',
       'event_areas.event_id',
-      'event_areas.name'
+      'event_areas.name',
+      DB::raw('CASE WHEN supplier_event_areas.id IS NULL THEN false ELSE true END as is_checked'),
     ]);
 
-    $items->where('event_areas.is_active', 1);
-    $items->where('event_areas.event_id', $request->event_id);
+    $items->leftJoin('supplier_event_areas', function ($join) use ($supplier_user) {
+      $join->on('supplier_event_areas.event_area_id', '=', 'event_areas.id')
+        ->where('supplier_event_areas.supplier_id', '=', $supplier_user->supplier_id)
+        ->where('supplier_event_areas.supplier_user_id', '=', $supplier_user->id)
+        ->where('supplier_event_areas.is_active', '=', true);
+    });
+
+    $items->where('event_areas.is_active', true)
+      ->where('event_areas.event_id', (int) $request->event_id);
+
+    $items->distinct()
+      ->orderBy('event_areas.name');
 
     return $items->get();
   }
