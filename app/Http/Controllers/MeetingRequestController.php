@@ -3,9 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\HasActiveToggle;
+use App\Models\Buyer;
 use App\Models\BuyerUser;
 use App\Models\MeetingRequest;
+use App\Models\Supplier;
 use App\Models\SupplierUser;
+use App\Models\User;
+use App\Services\EmailService;
 use DB;
 use Illuminate\Http\Request;
 use Throwable;
@@ -92,6 +96,25 @@ class MeetingRequestController extends Controller {
 
       $item = MeetingRequest::saveData($item, $payload);
 
+      //Envió de correo
+      DB::afterCommit(function () use ($item) {
+        $buyer_user = BuyerUser::find($item->buyer_user_id);
+        $buyer_user = User::find($buyer_user->user_id);
+
+        $supplier = Supplier::find($item->supplier_id);
+
+        $supplier_user = SupplierUser::find($item->supplier_user_id);
+        $supplier_user = User::find($supplier_user->user_id);
+        
+        EmailService::MeetingRequest(
+          [$buyer_user->email],
+          [
+            'company_name' => $supplier->name,
+            'supplier_user' => $supplier_user->full_name
+          ]
+        );
+      });
+
       DB::commit();
 
       return $this->rsp(
@@ -141,9 +164,22 @@ class MeetingRequestController extends Controller {
 
     try {
       
-      $meeting_request = MeetingRequest::find($request->id);
-      $meeting_request->is_approved = false;
-      $meeting_request->save();
+      $item = MeetingRequest::find($request->id);
+      $item->is_approved = false;
+      $item->save();
+
+      //Envió de correo
+      DB::afterCommit(function () use ($item) {
+        $supplier_user = SupplierUser::find($item->supplier_user_id);
+        $supplier_user = User::find($supplier_user->user_id);
+        $buyer = Buyer::find($item->buyer_id);
+        EmailService::MeetingRequestRejected(
+          [$supplier_user->email],
+          [
+            'company_name' => $buyer->name
+          ]
+        );
+      });
 
       DB::commit();
 

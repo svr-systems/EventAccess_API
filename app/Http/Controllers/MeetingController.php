@@ -3,10 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\HasActiveToggle;
+use App\Models\Buyer;
 use App\Models\BuyerUser;
 use App\Models\Event;
 use App\Models\Meeting;
 use App\Models\MeetingRequest;
+use App\Models\PresentationDate;
+use App\Models\Supplier;
+use App\Models\SupplierUser;
+use App\Models\User;
+use App\Services\EmailService;
 use DB;
 use Illuminate\Http\Request;
 use Throwable;
@@ -113,6 +119,32 @@ class MeetingController extends Controller {
         $meeting_request->save();
       }
 
+      $item->is_meeting_request = !empty($request->meeting_request_id);
+
+      //Envió de correo
+      DB::afterCommit(function () use ($item) {
+        $supplier_user = SupplierUser::find($item->supplier_user_id);
+        $supplier_user = User::find($supplier_user->user_id);
+
+        $presentation_date = PresentationDate::find($item->presentation_date_id);
+
+        $buyer = Buyer::find($item->buyer_id);
+        $buyer_user = BuyerUser::find($item->buyer_user_id);
+        $buyer_user = User::find($buyer_user->user_id);
+
+        EmailService::MeetingConfirmed(
+          [$supplier_user->email],
+          [
+            'date' => $presentation_date->date,
+            'start_time' => $item->start_time,
+            'end_time' => $item->end_time,
+            'company_name' => $buyer->name,
+            'buyer_user' => $buyer_user->full_name,
+            'is_meeting_request' => $item->is_meeting_request
+          ]
+        );
+      });
+
       DB::commit();
 
       return $this->rsp(
@@ -139,10 +171,27 @@ class MeetingController extends Controller {
     DB::beginTransaction();
 
     try {
-      
-      $meeting = Meeting::find($request->id);
-      $meeting->is_confirmed = false;
-      $meeting->save();
+
+      $item = Meeting::find($request->id);
+      $item->is_confirmed = false;
+      $item->save();
+
+      //Envió de correo
+      DB::afterCommit(function () use ($item) {
+        $supplier_user = SupplierUser::find($item->supplier_user_id);
+        $supplier_user = User::find($supplier_user->user_id);
+        $presentation_date = PresentationDate::find($item->presentation_date_id);
+        $buyer = Buyer::find($item->buyer_id);
+        EmailService::MeetingRejected(
+          [$supplier_user->email],
+          [
+            'date' => $presentation_date->date,
+            'start_time' => $item->start_time,
+            'end_time' => $item->end_time,
+            'company_name' => $buyer->name
+          ]
+        );
+      });
 
       DB::commit();
 
@@ -176,10 +225,37 @@ class MeetingController extends Controller {
     DB::beginTransaction();
 
     try {
-      
-      $meeting = Meeting::find($request->id);
-      $meeting->is_confirmed = $request->is_confirmed;
-      $meeting->save();
+
+      $item = Meeting::find($request->id);
+      $item->is_confirmed = $request->is_confirmed;
+      $item->save();
+
+
+      //Envió de correo
+      if (!$item->is_confirmed) {
+        DB::afterCommit(function () use ($item) {
+          $buyer_user = BuyerUser::find($item->buyer_user_id);
+          $buyer_user = User::find($buyer_user->user_id);
+
+          $presentation_date = PresentationDate::find($item->presentation_date_id);
+
+          $supplier = Supplier::find($item->supplier_id);
+
+          $supplier_user = SupplierUser::find($item->supplier_user_id);
+          $supplier_user = User::find($supplier_user->user_id);
+
+          EmailService::MeetingSupplierRejected(
+            [$buyer_user->email],
+            [
+              'date' => $presentation_date->date,
+              'start_time' => $item->start_time,
+              'end_time' => $item->end_time,
+              'company_name' => $supplier->name,
+              'supplier_user' => $supplier_user->full_name
+            ]
+          );
+        });
+      }
 
       DB::commit();
 

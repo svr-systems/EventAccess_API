@@ -38,6 +38,7 @@ class EmailService
     $data['link'] = self::frontLink('/iniciar_sesion', $email !== '' ? ['email' => $email] : []);
     self::send($emails, $data, 'Contraseña restablecida', 'UserPasswordReset');
   }
+  
   /**
    * ===========================================
    * TICKET EMAILS
@@ -47,6 +48,32 @@ class EmailService
   {
     // $data['link'] = self::frontLinkWithEncryptedId('/confirmar_cuenta', (string) data_get($data, 'id'));
     self::send($emails, $data, 'Boletos comprados', 'TicketsPurchased',$files);
+  }
+
+  /**
+   * ===========================================
+   * MEETING EMAILS
+   * ===========================================
+   */
+  public static function MeetingConfirmed(array $emails, array $data): void
+  {
+    self::send($emails, $data, 'Confirmación de reunión', 'MeetingConfirmed');
+  }
+  public static function MeetingRejected(array $emails, array $data): void
+  {
+    self::send($emails, $data, 'Cancelación de reunión', 'MeetingRejected');
+  }
+  public static function MeetingSupplierRejected(array $emails, array $data): void
+  {
+    self::send($emails, $data, 'Cancelación de reunión', 'MeetingSupplierRejected');
+  }
+  public static function MeetingRequest(array $emails, array $data): void
+  {
+    self::send($emails, $data, 'Nueva de solicitud de reunión', 'MeetingRequest');
+  }
+  public static function MeetingRequestRejected(array $emails, array $data): void
+  {
+    self::send($emails, $data, 'Cancelación de solicitud de reunión', 'MeetingRequestRejected');
   }
 
   /**
