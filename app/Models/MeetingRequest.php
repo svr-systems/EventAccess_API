@@ -57,6 +57,10 @@ class MeetingRequest extends Model {
     return $this->belongsTo(Buyer::class, 'buyer_id');
   }
 
+  public function event_area(): BelongsTo {
+    return $this->belongsTo(EventArea::class, 'event_area_id');
+  }
+
   /**
    * ===========================================
    * ACCESSORES
@@ -221,7 +225,8 @@ class MeetingRequest extends Model {
     $items->with([
       'buyer:id,name,logo_path',
       'buyer_user:id,user_id',
-      'buyer_user:id,name,paternal_surname,maternal_surname'
+      'buyer_user:id,name,paternal_surname,maternal_surname',
+      'event_area:id,name'
     ]);
 
     $items->where('meeting_requests.is_active', (bool) ((int) $is_active))->
