@@ -103,7 +103,6 @@ Route::prefix('v1')->group(function () {
         Route::patch('/meetings/reject', [MeetingController::class, 'reject']);
         Route::get('/meetings/available', [MeetingController::class, 'getAvailableSlots']);
         Route::get('/meetings/requests', [MeetingRequestController::class, 'buyerIndex']);
-        Route::get('/meetings/requests/{id}', [MeetingRequestController::class, 'buyerShow']);
         Route::patch('/meetings/requests/reject', [MeetingRequestController::class, 'reject']);
 
         Route::get('/offer_areas/suppliers/{supplier_event_area_id}', [SupplierEventAreaController::class, 'buyerShow']);

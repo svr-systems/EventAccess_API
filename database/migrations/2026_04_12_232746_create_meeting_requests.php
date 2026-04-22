@@ -17,9 +17,11 @@ return new class extends Migration
 
       $table->foreignId('buyer_id')->constrained('buyers');
       $table->foreignId('buyer_user_id')->constrained('buyer_users');
+      $table->foreignId('buyer_offer_area_id')->constrained('buyer_offer_areas');
 
       $table->foreignId('supplier_id')->constrained('suppliers');
       $table->foreignId('supplier_user_id')->constrained('supplier_users');
+      $table->foreignId('supplier_event_area_id')->constrained('supplier_event_areas');
 
       $table->foreignId('meeting_id')->nullable()->constrained('meetings');
 

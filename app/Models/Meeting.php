@@ -325,6 +325,7 @@ class Meeting extends Model {
   public static function getItems(Request $request) {
     $is_active = $request->query('is_active', 1);
     $buyer_user = BuyerUser::getFirstByUser($request->user()->id);
+    $filter = Input::toBool($request->filter, true);
 
     $items = self::query();
 
@@ -334,18 +335,20 @@ class Meeting extends Model {
 
     $items->with([
       'event_area:id,name',
-      'supplier:id,name,logo_path',
+      'supplier:id,name,logo_path,phone,website_url,description,address,municipality_id,zip,fiscal_code,fiscal_name',
       'presentation_date:id,date',
     ]);
 
     $items->where('meetings.is_active', (bool) ((int) $is_active))->
       where('buyer_user_id', $buyer_user->id)->
-      where('buyer_id', $buyer_user->buyer_id);
+      where('buyer_id', $buyer_user->buyer_id)->
+      where('is_confirmed', $filter);
 
     $items = $items->get();
 
     return $items->map(function ($item) {
       $item->supplier->appendLogoBase64();
+      $item->supplier->setMunicipality();
 
       return $item;
     });
@@ -385,9 +388,11 @@ class Meeting extends Model {
 
     $item->buyer_id = Input::toId(data_get($data, 'buyer_id'));
     $item->buyer_user_id = Input::toId(data_get($data, 'buyer_user_id'));
+    $item->buyer_offer_area_id = Input::toId(data_get($data, 'buyer_offer_area_id'));
 
     $item->supplier_id = Input::toId(data_get($data, 'supplier_id'));
     $item->supplier_user_id = Input::toId(data_get($data, 'supplier_user_id'));
+    $item->supplier_event_area_id = Input::toId(data_get($data, 'supplier_event_area_id'));
 
     $item->start_time = Input::trimOrNull(data_get($data, 'start_time'));
     $item->end_time = Input::trimOrNull(data_get($data, 'end_time'));
@@ -612,6 +617,7 @@ class Meeting extends Model {
   public static function getSupplierItems(Request $request) {
     $is_active = $request->query('is_active', 1);
     $supplier_user = SupplierUser::getFirstByUser($request->user()->id);
+    $filter = Input::toBool($request->filter, true);
 
     $items = self::query();
 
@@ -627,7 +633,8 @@ class Meeting extends Model {
 
     $items->where('meetings.is_active', (bool) ((int) $is_active))->
       where('supplier_user_id', $supplier_user->id)->
-      where('supplier_id', $supplier_user->supplier_id);
+      where('supplier_id', $supplier_user->supplier_id)->
+      where('is_confirmed',$filter);
 
     $items = $items->get();
 

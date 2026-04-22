@@ -65,6 +65,13 @@ class Supplier extends Model {
     return $this;
   }
 
+  public function setMunicipality() {
+    $this->municipality = Municipality::find($this->municipality_id,['name','state_id']);
+    $this->municipality->state = State::find($this->municipality->state_id,['name'])->name;
+
+    return $this;
+  }
+
   /**
    * ===========================================
    * VALIDACIONES
@@ -185,6 +192,9 @@ class Supplier extends Model {
       return null;
     }
 
+
+    $item->logo_b64 = StorageMgrService::getBase64($item->logo_path, 'Supplier');
+    $item->logo_doc = null;
 
     $item->tax_certificate_b64 = StorageMgrService::getBase64($item->tax_certificate_path, 'Supplier');
     $item->tax_certificate_doc = null;

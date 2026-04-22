@@ -10,10 +10,11 @@ return new class extends Migration {
       $table->id();
       $table->auditFields();
       $table->foreignId('buyer_id')->constrained('buyers');
+      $table->foreignId('buyer_user_id')->constrained('buyer_users');
       $table->foreignId('event_area_id')->constrained('event_areas');
       $table->text('description');
 
-      $table->unique(['buyer_id', 'event_area_id']);
+      $table->unique(['buyer_id','buyer_user_id', 'event_area_id'],'uq_b_bu_ea');
     });
   }
 

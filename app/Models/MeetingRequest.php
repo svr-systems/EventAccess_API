@@ -276,9 +276,11 @@ class MeetingRequest extends Model {
 
     $item->buyer_id = Input::toId(data_get($data, 'buyer_id'));
     $item->buyer_user_id = Input::toId(data_get($data, 'buyer_user_id'));
+    $item->buyer_offer_area_id = Input::toId(data_get($data, 'buyer_offer_area_id'));
 
     $item->supplier_id = Input::toId(data_get($data, 'supplier_id'));
     $item->supplier_user_id = Input::toId(data_get($data, 'supplier_user_id'));
+    $item->supplier_event_area_id = Input::toId(data_get($data, 'supplier_event_area_id'));
 
     $item->meeting_id = Input::toId(data_get($data, 'meeting_id'));
 
@@ -317,7 +319,7 @@ class MeetingRequest extends Model {
     ]);
 
     $items->with([
-      'supplier:id,name,logo_path',
+      'supplier:id,name,logo_path,phone,website_url,description,address,municipality_id,zip,fiscal_code,fiscal_name',
       'supplier_user:id,user_id',
       'supplier_user.user:id,name,paternal_surname,maternal_surname',
     ]);
@@ -333,6 +335,7 @@ class MeetingRequest extends Model {
 
     return $items->map(function ($item) {
       $item->supplier->appendLogoBase64();
+      $item->supplier->setMunicipality();
 
       return $item;
     });

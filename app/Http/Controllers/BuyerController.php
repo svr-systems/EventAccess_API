@@ -62,7 +62,7 @@ class BuyerController extends Controller {
     DB::beginTransaction();
     $buyer = Buyer::getItem($request);
     $id = $buyer->id;
-    
+
     try {
       $store_mode = is_null($id);
 
@@ -108,8 +108,18 @@ class BuyerController extends Controller {
 
   public function getMatchedSupplierAreas(Request $request) {
     try {
+      $result = Buyer::getMatchedSupplierAreas($request);
+
+      if (!$result['has_available_hours']) {
+        return $this->rsp(200, 'Ya no cuentas con horarios disponibles para nuevas reuniones en este evento.', [
+          'items' => [],
+          'has_available_hours' => false,
+        ]);
+      }
+
       return $this->rsp(200, 'Registros retornados correctamente', [
-        'items' => Buyer::getMatchedSupplierAreas($request),
+        'items' => $result['items'],
+        'has_available_hours' => true,
       ]);
     } catch (Throwable $err) {
       return $this->rsp(500, null, $err);
