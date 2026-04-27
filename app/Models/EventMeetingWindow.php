@@ -52,6 +52,10 @@ class EventMeetingWindow extends Model {
     return $this->belongsTo(PresentationDate::class, 'presentation_date_id');
   }
 
+  public function buyer_user_schedule(): BelongsTo {
+    return $this->belongsTo(BuyerUserSchedule::class, 'buyer_user_schedule_id');
+  }
+
   /**
    * ===========================================
    * ACCESSORES
@@ -178,7 +182,7 @@ class EventMeetingWindow extends Model {
     ]);
 
     $items->where('event_meeting_windows.is_active', (bool) ((int) $is_active))->
-      where('event_id',$request->event_id);
+      where('event_id', $request->event_id);
 
     return $items->get();
   }
@@ -219,34 +223,5 @@ class EventMeetingWindow extends Model {
     $item->save();
 
     return $item;
-  }
-
-  /**
-   * ===========================================
-   * CONSULTAS
-   * ===========================================
-   */
-  public static function getBuyersItems(Request $request) {
-    $is_active = $request->query('is_active', 1);
-
-    $items = self::query();
-
-    $items->select([
-      'event_meeting_windows.id',
-      'event_meeting_windows.is_active',
-      'event_meeting_windows.event_id',
-      'event_meeting_windows.presentation_date_id',
-      'event_meeting_windows.start_time',
-      'event_meeting_windows.end_time',
-    ]);
-
-    $items->with([
-      'presentation_date:id,date,start_time,end_time',
-    ]);
-
-    $items->where('event_meeting_windows.is_active', (bool) ((int) $is_active))->
-      where('event_id',$request->event_id);
-
-    return $items->get();
   }
 }

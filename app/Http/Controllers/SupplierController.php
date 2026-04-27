@@ -133,8 +133,18 @@ class SupplierController extends Controller {
 
   public function getMatchedBuyerAreas(Request $request) {
     try {
+      $result = Supplier::getMatchedBuyerAreas($request);
+
+      if (!$result['has_available_hours']) {
+        return $this->rsp(200, 'Ya tienes tus horarios completos para este evento.', [
+          'items' => [],
+          'has_available_hours' => false,
+        ]);
+      }
+
       return $this->rsp(200, 'Registros retornados correctamente', [
-        'items' => Supplier::getMatchedBuyerAreas($request),
+        'items' => $result['items'],
+        'has_available_hours' => true,
       ]);
     } catch (Throwable $err) {
       return $this->rsp(500, null, $err);

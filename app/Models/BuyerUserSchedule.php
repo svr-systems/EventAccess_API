@@ -49,6 +49,7 @@ class BuyerUserSchedule extends Model {
   public function user(): BelongsTo {
     return $this->belongsTo(User::class, 'user_id');
   }
+  
 
   /**
    * ===========================================
@@ -194,34 +195,67 @@ class BuyerUserSchedule extends Model {
   public static function getItems(Request $request) {
     $is_active = $request->query('is_active', 1);
 
-    $items = self::query();
+    $buyer_user = BuyerUser::getFirstByUser($request->user()->id);
 
-    $items->select([
-      'buyer_user_schedules.id',
-      'buyer_user_schedules.is_active',
-      'buyer_user_schedules.buyer_id',
-      'buyer_user_schedules.event_id',
-      'buyer_user_schedules.buyer_user_id',
-      'buyer_user_schedules.presentation_date_id',
-      'buyer_user_schedules.start_time',
-      'buyer_user_schedules.end_time',
+    if (!$buyer_user) {
+      return collect();
+    }
+
+
+    $items = EventMeetingWindow::select([
+      'event_meeting_windows.id',
+      'event_meeting_windows.is_active',
+      'event_meeting_windows.event_id',
+      'event_meeting_windows.presentation_date_id',
+      'event_meeting_windows.start_time',
+      'event_meeting_windows.end_time',
+
+      'buyer_user_schedules.id as buyer_user_schedule_id',
+      'buyer_user_schedules.is_active as buyer_user_schedule_is_active',
+      'buyer_user_schedules.start_time as buyer_user_schedule_start_time',
+      'buyer_user_schedules.end_time as buyer_user_schedule_end_time',
     ]);
 
     $items->with([
-      'buyer_user:id,user_id',
-      'buyer_user.user:id,name,paternal_surname,maternal_surname'
+      'presentation_date:id,date',
     ]);
 
-    $items->where('buyer_user_schedules.is_active', (bool) ((int) $is_active))->
-      where('event_id',$request->event_id);
+    $items->leftJoin('buyer_user_schedules', function ($join) use ($buyer_user) {
+      $join->on(
+        'buyer_user_schedules.presentation_date_id',
+        '=',
+        'event_meeting_windows.presentation_date_id'
+      )
+        ->where('buyer_user_schedules.buyer_id', '=', $buyer_user->buyer_id)
+        ->where('buyer_user_schedules.buyer_user_id', '=', $buyer_user->id);
+    });
 
+    $items->where('event_meeting_windows.is_active', (bool) ((int) $is_active))
+      ->where('event_meeting_windows.event_id', $request->event_id);
 
-    if ($request->user()->role_id === 3 || $request->user()->role_id === 4) {
-      $items->join('company_users', 'company_users.company_id', 'buyer_user_schedules.id');
-      $items->where('company_users.user_id', $request->user()->id);
-    }
+    return $items->get()->map(function ($item) {
+      $item->buyer_user_schedule = [
+        'id' => $item->buyer_user_schedule_id,
+        'is_active' => is_null($item->buyer_user_schedule_id)
+          ? true
+          : (bool) $item->buyer_user_schedule_is_active,
+        'event_id' => $item->event_id,
+        'presentation_date_id' => $item->presentation_date_id,
+        'start_time' => $item->buyer_user_schedule_start_time ?? $item->start_time,
+        'end_time' => $item->buyer_user_schedule_end_time ?? $item->end_time,
+        'display_id' => $item->buyer_user_schedule_id
+          ? $item->display_id
+          : null,
+      ];
 
-    return $items->get();
+      unset(
+        $item->buyer_user_schedule_is_active,
+        $item->buyer_user_schedule_start_time,
+        $item->buyer_user_schedule_end_time
+      );
+
+      return $item;
+    });
   }
 
   public static function getItem($id, Request $request = null) {
@@ -254,6 +288,7 @@ class BuyerUserSchedule extends Model {
    */
   public static function saveData(self $item, array $data): self {
 
+    $item->is_active = Input::toBool(data_get($data, 'is_active'));
     $item->buyer_id = Input::toId(data_get($data, 'buyer_id'));
     $item->event_id = Input::toId(data_get($data, 'event_id'));
     $item->buyer_user_id = Input::toId(data_get($data, 'buyer_user_id'));

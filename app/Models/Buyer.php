@@ -68,6 +68,13 @@ class Buyer extends Model {
     return $this;
   }
 
+  public function setMunicipality() {
+    $this->municipality = Municipality::find($this->municipality_id, ['name', 'state_id']);
+    $this->municipality->state = State::find($this->municipality->state_id, ['name'])->name;
+
+    return $this;
+  }
+
   private static function buyerHasAvailableHours(
     int $event_id,
     int $buyer_id,

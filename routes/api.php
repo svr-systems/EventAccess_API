@@ -114,8 +114,8 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('/offer_areas', BuyerOfferAreaController::class);
         Route::patch('/offer_areas/{id}/activate', [BuyerOfferAreaController::class, 'activate']);
 
-        Route::apiResource('/user_schedules', BuyerUserScheduleController::class);
-        Route::patch('/user_schedules/{id}/activate', [BuyerUserScheduleController::class, 'activate']);
+        Route::get('/user_schedules', [BuyerUserScheduleController::class, 'index']);
+        Route::post('/user_schedules', [BuyerUserScheduleController::class, 'store']);
 
         Route::get('/events/meeting_windows', [EventMeetingWindowController::class, 'buyersIndex']);
 

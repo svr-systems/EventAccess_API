@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\HasActiveToggle;
+use App\Models\BuyerUser;
 use App\Models\BuyerUserSchedule;
 use DB;
 use Illuminate\Http\Request;
@@ -43,55 +44,31 @@ class BuyerUserScheduleController extends Controller {
   }
 
   public function store(Request $request) {
-    return $this->storeUpdate(null, $request);
-  }
-
-  public function update(string $id, Request $request) {
-    return $this->storeUpdate($id, $request);
-  }
-
-  public function destroy(string $id, Request $request) {
-    return $this->setActive(BuyerUserSchedule::class, $id, $request, false);
-  }
-
-  public function activate(string $id, Request $request) {
-    return $this->setActive(BuyerUserSchedule::class, $id, $request, true);
-  }
-
-  protected function storeUpdate(?string $id, Request $request) {
     DB::beginTransaction();
 
     try {
-      $store_mode = is_null($id);
+      $buyer_user = BuyerUser::getFirstByUser($request->user()->id);
 
-      $valid = BuyerUserSchedule::validData($request->all());
-      if ($valid->fails()) {
-        DB::rollBack();
-        return $this->rsp(422, $valid->errors()->first(), null, $valid->errors()->toArray());
-      }
+      foreach ($request->buyer_user_schedules as $buyer_user_schedule) {
 
+        $item = BuyerUserSchedule::find($buyer_user_schedule['id']);
 
-      if ($store_mode) {
-        $item = new BuyerUserSchedule();
-      } else {
-        $item = BuyerUserSchedule::find((int) $id);
-
-        if (is_null($item)) {
-          DB::rollBack();
-          return $this->rsp(404, 'Registro no encontrado');
+        if(!$item){
+          $item = new BuyerUserSchedule;
         }
+
+        $buyer_user_schedule['buyer_id'] = $buyer_user->buyer_id;
+        $buyer_user_schedule['buyer_user_id'] = $buyer_user->id;
+
+        $item = BuyerUserSchedule::saveData($item, $buyer_user_schedule);
       }
-
-      $payload = $request->all();
-
-      $item = BuyerUserSchedule::saveData($item, $payload);
 
       DB::commit();
 
       return $this->rsp(
-        $store_mode ? 201 : 200,
-        'Registro ' . ($store_mode ? 'agregado' : 'editado') . ' correctamente',
-        $store_mode ? ['item' => ['id' => $item->id]] : null
+        200,
+        'Registros guardados correctamente',
+        null
       );
     } catch (Throwable $err) {
       DB::rollBack();

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\MeetingAvailabilityService;
 use App\Services\StorageMgrService;
 use App\Support\DisplayId;
 use App\Support\Input;
@@ -66,8 +67,8 @@ class Supplier extends Model {
   }
 
   public function setMunicipality() {
-    $this->municipality = Municipality::find($this->municipality_id,['name','state_id']);
-    $this->municipality->state = State::find($this->municipality->state_id,['name'])->name;
+    $this->municipality = Municipality::find($this->municipality_id, ['name', 'state_id']);
+    $this->municipality->state = State::find($this->municipality->state_id, ['name'])->name;
 
     return $this;
   }
@@ -260,48 +261,97 @@ class Supplier extends Model {
    * CONSULTAS
    * ===========================================
    */
-  public static function getMatchedBuyerAreas(Request $request) {
+  public static function getMatchedBuyerAreas(Request $request): array {
     $supplier_user = SupplierUser::getFirstByUser($request->user()->id);
 
     if (!$supplier_user) {
-      return collect();
+      return [
+        'has_available_hours' => false,
+        'items' => collect(),
+      ];
     }
 
+    $event_id = (int) $request->event_id;
     $supplier_id = $supplier_user->supplier_id;
     $supplier_user_id = $supplier_user->id;
     $search = trim((string) $request->search);
 
+    if ($event_id <= 0) {
+      return [
+        'has_available_hours' => false,
+        'items' => collect(),
+      ];
+    }
+
+    $has_available_hours = MeetingAvailabilityService::supplierHasAvailableHours(
+      $event_id,
+      $supplier_id,
+      $supplier_user_id
+    );
+
+    if (!$has_available_hours) {
+      return [
+        'has_available_hours' => false,
+        'items' => collect(),
+      ];
+    }
+
     $items = DB::table('buyer_offer_areas')
       ->select([
-        'buyer_offer_areas.id',
+        'buyer_offer_areas.id as buyer_offer_area_id',
         'buyer_offer_areas.buyer_id',
         'buyer_offer_areas.buyer_user_id',
         'buyer_offer_areas.event_area_id',
+        'buyer_offer_areas.description',
+        'supplier_event_areas.id as supplier_event_area_id',
       ])
       ->join('buyers', 'buyers.id', '=', 'buyer_offer_areas.buyer_id')
       ->join('buyer_users', 'buyer_users.id', '=', 'buyer_offer_areas.buyer_user_id')
       ->join('users', 'users.id', '=', 'buyer_users.user_id')
       ->join('event_areas', 'event_areas.id', '=', 'buyer_offer_areas.event_area_id')
+      ->join('supplier_event_areas', function ($join) use ($supplier_id, $supplier_user_id) {
+        $join->on('supplier_event_areas.event_area_id', '=', 'buyer_offer_areas.event_area_id')
+          ->where('supplier_event_areas.supplier_id', '=', $supplier_id)
+          ->where('supplier_event_areas.supplier_user_id', '=', $supplier_user_id)
+          ->where('supplier_event_areas.is_active', '=', true);
+      })
       ->where('buyer_offer_areas.is_active', true)
       ->where('buyers.is_active', true)
       ->where('event_areas.is_active', true)
-      ->whereExists(function ($query) use ($supplier_id, $supplier_user_id) {
+      ->where('event_areas.event_id', $event_id)
+      ->whereNotExists(function ($query) {
         $query->selectRaw('1')
-          ->from('supplier_event_areas')
-          ->whereColumn('supplier_event_areas.event_area_id', 'buyer_offer_areas.event_area_id')
-          ->where('supplier_event_areas.supplier_id', $supplier_id)
-          ->where('supplier_event_areas.supplier_user_id', $supplier_user_id)
-          ->where('supplier_event_areas.is_active', true);
+          ->from('meetings')
+          ->whereColumn('meetings.supplier_event_area_id', 'supplier_event_areas.id')
+          ->whereColumn('meetings.buyer_offer_area_id', 'buyer_offer_areas.id')
+          ->where('meetings.is_active', true)
+          ->where(function ($q) {
+            $q->whereNull('meetings.is_confirmed')
+              ->orWhere('meetings.is_confirmed', true);
+          });
+      })
+      ->whereNotExists(function ($query) {
+        $query->selectRaw('1')
+          ->from('meeting_requests')
+          ->whereColumn('meeting_requests.supplier_event_area_id', 'supplier_event_areas.id')
+          ->whereColumn('meeting_requests.buyer_offer_area_id', 'buyer_offer_areas.id')
+          ->where('meeting_requests.is_active', true)
+          ->where(function ($q) {
+            $q->whereNull('meeting_requests.is_approved')
+              ->orWhere('meeting_requests.is_approved', true);
+          });
       });
 
     if ($search !== '') {
       $items->where(function ($query) use ($search) {
         $query->where('buyers.name', 'like', '%' . $search . '%')
+          ->orWhere('buyers.description', 'like', '%' . $search . '%')
+          ->orWhere('buyers.website_url', 'like', '%' . $search . '%')
           ->orWhere('event_areas.name', 'like', '%' . $search . '%')
           ->orWhere('users.name', 'like', '%' . $search . '%')
           ->orWhere('users.paternal_surname', 'like', '%' . $search . '%')
           ->orWhere('users.maternal_surname', 'like', '%' . $search . '%')
-          ->orWhere('buyer_offer_areas.description', 'like', '%' . $search . '%');
+          ->orWhere('users.email', 'like', '%' . $search . '%');
       });
     }
 
@@ -313,50 +363,41 @@ class Supplier extends Model {
       ->get();
 
     if ($rows->isEmpty()) {
-      return collect();
+      return [
+        'has_available_hours' => true,
+        'items' => collect(),
+      ];
     }
 
-    $buyer_ids = $rows->pluck('buyer_id')->unique()->values();
-    $buyer_user_ids = $rows->pluck('buyer_user_id')->unique()->values();
-    $buyer_offer_area_ids = $rows->pluck('id')->unique()->values();
-    $event_area_ids = $rows->pluck('event_area_id')->unique()->values();
+    $available_rows = $rows->filter(function ($row) use ($event_id) {
+      return MeetingAvailabilityService::buyerHasAvailableHours(
+        $event_id,
+        (int) $row->buyer_id,
+        (int) $row->buyer_user_id
+      );
+    })->values();
+
+    if ($available_rows->isEmpty()) {
+      return [
+        'has_available_hours' => true,
+        'items' => collect(),
+      ];
+    }
+
+    $buyer_ids = $available_rows->pluck('buyer_id')->unique()->values();
+    $event_area_ids = $available_rows->pluck('event_area_id')->unique()->values();
 
     $buyers = Buyer::query()
       ->select([
         'id',
         'name',
-        'logo_path'
+        'logo_path',
+        'phone',
+        'website_url',
+        'description',
+        'municipality_id',
       ])
       ->whereIn('id', $buyer_ids)
-      ->get()
-      ->keyBy('id');
-
-    $buyer_users = BuyerUser::query()
-      ->select([
-        'buyer_users.id',
-        'buyer_users.buyer_id',
-        'buyer_users.user_id',
-        'users.name',
-        'users.paternal_surname',
-        'users.maternal_surname',
-        'users.email',
-        'users.phone',
-        'users.avatar_path',
-      ])
-      ->join('users', 'users.id', '=', 'buyer_users.user_id')
-      ->whereIn('buyer_users.id', $buyer_user_ids)
-      ->get()
-      ->keyBy('id');
-
-    $buyer_offer_areas = BuyerOfferArea::query()
-      ->select([
-        'id',
-        'buyer_id',
-        'buyer_user_id',
-        'event_area_id',
-        'description',
-      ])
-      ->whereIn('id', $buyer_offer_area_ids)
       ->get()
       ->keyBy('id');
 
@@ -370,20 +411,31 @@ class Supplier extends Model {
       ->get()
       ->keyBy('id');
 
-    return $rows->map(function ($row) use ($buyers, $buyer_users, $buyer_offer_areas, $event_areas) {
+    $mapped = $available_rows->map(function ($row) use ($buyers, $event_areas) {
       $buyer = $buyers[$row->buyer_id] ?? null;
-      $buyer->appendLogoBase64();
+      $event_area = $event_areas[$row->event_area_id] ?? null;
+
+      if ($buyer) {
+        $buyer->appendLogoBase64();
+        $buyer->setMunicipality();
+      }
+
       return [
-        'id' => $row->id,
+        'id' => $row->buyer_offer_area_id,
+        'description' => $row->description,
         'buyer_id' => $row->buyer_id,
         'buyer' => $buyer,
         'buyer_user_id' => $row->buyer_user_id,
-        'buyer_user' => $buyer_users[$row->buyer_user_id] ?? null,
-        'buyer_offer_area_id' => $row->id,
-        'buyer_offer_area' => $buyer_offer_areas[$row->id] ?? null,
         'event_area_id' => $row->event_area_id,
-        'event_area' => $event_areas[$row->event_area_id] ?? null,
+        'event_area' => $event_area,
+        'supplier_event_area_id' => $row->supplier_event_area_id,
+        'buyer_offer_area_id' => $row->buyer_offer_area_id,
       ];
     })->values();
+
+    return [
+      'has_available_hours' => true,
+      'items' => $mapped,
+    ];
   }
 }
