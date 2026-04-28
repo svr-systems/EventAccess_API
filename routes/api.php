@@ -241,6 +241,9 @@ Route::prefix('v1')->group(function () {
         Route::patch('/events/presentation_dates/{id}/activate', [PresentationDateController::class, 'activate']);
 
         Route::apiResource('/events', EventController::class);
+        Route::patch('/events/{id}/images', [EventController::class, 'setIamges']);
+        Route::patch('/events/{id}/general', [EventController::class, 'setGeneral']);
+        Route::patch('/events/{id}/address', [EventController::class, 'setAddress']);
         Route::patch('/events/{id}/activate', [EventController::class, 'activate']);
 
         Route::apiResource('/users', CompanyUserController::class);

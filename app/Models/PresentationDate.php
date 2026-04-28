@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Traits\HasAuditFields;
 use DB;
 use Illuminate\Database\Eloquent\Model;
 use App\Support\DisplayId;
@@ -14,7 +15,7 @@ use Illuminate\Support\Facades\Validator;
 use Laravel\Passport\HasApiTokens;
 
 class PresentationDate extends Model {
-  use HasApiTokens, HasFactory, Notifiable;
+  use HasApiTokens, HasFactory, Notifiable,HasAuditFields;
 
   /**
    * ===========================================
@@ -64,9 +65,10 @@ class PresentationDate extends Model {
    * VALIDACIONES
    * ===========================================
    */
-  public static function validData(array $data) {
+  public static function validData(array $data, bool $require_event = true) {
     $rules = [
-      'event_id' => ['required', 'integer', 'exists:events,id'],
+      'id' => ['nullable', 'integer', 'exists:presentation_dates,id'],
+      'is_active' => ['nullable', 'boolean'],
 
       'date' => ['required', 'date'],
 
@@ -74,8 +76,24 @@ class PresentationDate extends Model {
       'start_time' => ['required', 'date_format:H:i', 'after_or_equal:reception_time'],
       'end_time' => ['required', 'date_format:H:i', 'after:start_time'],
     ];
+
+    if ($require_event) {
+      $rules['event_id'] = ['required', 'integer', 'exists:events,id'];
+    } else {
+      $rules['event_id'] = ['nullable', 'integer'];
+    }
+
     $msgs = [
-      'start_time.after_or_equal' => 'La hora de inicio debe ser posterior a la recepción',
+      'date.required' => 'La fecha del evento es obligatoria',
+      'reception_time.required' => 'La hora de recepción es obligatoria',
+      'start_time.required' => 'La hora de inicio es obligatoria',
+      'end_time.required' => 'La hora de término es obligatoria',
+
+      'reception_time.date_format' => 'La hora de recepción debe tener formato HH:mm',
+      'start_time.date_format' => 'La hora de inicio debe tener formato HH:mm',
+      'end_time.date_format' => 'La hora de término debe tener formato HH:mm',
+
+      'start_time.after_or_equal' => 'La hora de inicio debe ser posterior o igual a la recepción',
       'end_time.after' => 'La hora de término debe ser posterior al inicio',
     ];
 
@@ -135,6 +153,9 @@ class PresentationDate extends Model {
    * ===========================================
    */
   public static function saveData(self $item, array $data): self {
+    $item->is_active = array_key_exists('is_active', $data)
+      ? Input::toBool(data_get($data, 'is_active'))
+      : true;
     $item->event_id = Input::toId(data_get($data, 'event_id'));
     $item->date = Input::toText(data_get($data, 'date'));
     $item->reception_time = Input::toText(data_get($data, 'reception_time'));

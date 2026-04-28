@@ -35,6 +35,8 @@ class CatalogController extends Controller
 
       $model = match ($catalog) {
         'roles' => \App\Models\Role::class,
+        'states' => \App\Models\State::class,
+        'municipalities' => \App\Models\Municipality::class,
         default => null,
       };
 

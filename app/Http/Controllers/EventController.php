@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\HasActiveToggle;
+use App\Models\CompanyUser;
 use App\Models\Event;
+use App\Models\PresentationDate;
 use DB;
 use Illuminate\Http\Request;
 use Throwable;
@@ -42,14 +44,6 @@ class EventController extends Controller {
     }
   }
 
-  public function store(Request $request) {
-    return $this->storeUpdate(null, $request);
-  }
-
-  public function update(string $id, Request $request) {
-    return $this->storeUpdate($id, $request);
-  }
-
   public function destroy(string $id, Request $request) {
     return $this->setActive(Event::class, $id, $request, false);
   }
@@ -58,11 +52,10 @@ class EventController extends Controller {
     return $this->setActive(Event::class, $id, $request, true);
   }
 
-  protected function storeUpdate(?string $id, Request $request) {
+  public function store(Request $request) {
     DB::beginTransaction();
 
     try {
-      $store_mode = is_null($id);
 
       $valid = Event::validData($request->all());
       if ($valid->fails()) {
@@ -70,33 +63,194 @@ class EventController extends Controller {
         return $this->rsp(422, $valid->errors()->first(), null, $valid->errors()->toArray());
       }
 
+      // $presentation_dates = json_encode($request->presentation_dates);
+      // $presentation_dates_data = (array) json_decode($presentation_dates);
+      $presentation_dates_data = (array) json_decode($request->presentation_dates);
 
-      if ($store_mode) {
-        $item = new Event();
-        $item->created_by_id = $request->user()->id;
-        $item->updated_by_id = $request->user()->id;
-      } else {
-        $item = Event::find((int) $id);
-
-        if (is_null($item)) {
-          DB::rollBack();
-          return $this->rsp(404, 'Registro no encontrado');
-        }
-
-        $item->updated_by_id = $request->user()->id;
+      if (!is_array($presentation_dates_data) || count($presentation_dates_data) === 0) {
+        DB::rollBack();
+        return $this->rsp(422, 'Debes agregar al menos una fecha del evento');
       }
 
+      foreach ($presentation_dates_data as $index => $presentation_date_data) {
+        $presentation_date_data = json_decode(json_encode($presentation_date_data), true);
+        $valid_date = PresentationDate::validData($presentation_date_data, false);
+
+        if ($valid_date->fails()) {
+          DB::rollBack();
+          return $this->rsp(
+            422,
+            'Error en la fecha #' . ($index + 1) . ': ' . $valid_date->errors()->first(),
+            null,
+            $valid_date->errors()->toArray()
+          );
+        }
+      }
+
+
+      $item = new Event();
+
+      $company_user = CompanyUser::getFirstByUser($request->user()->id);
+
       $payload = $request->all();
+      $payload['company_id'] = $company_user->company_id;
       $payload['logo_doc'] = $request->file('logo_doc');
+      $payload['flyer_doc'] = $request->file('flyer_doc');
 
       $item = Event::saveData($item, $payload);
+
+      foreach ($presentation_dates_data as $presentation_date_data) {
+        $presentation_date = new PresentationDate();
+
+        $presentation_date_data->event_id = $item->id;
+
+        $presentation_date = PresentationDate::saveData($presentation_date, (array) $presentation_date_data);
+
+      }
 
       DB::commit();
 
       return $this->rsp(
-        $store_mode ? 201 : 200,
-        'Registro ' . ($store_mode ? 'agregado' : 'editado') . ' correctamente',
-        $store_mode ? ['item' => ['id' => $item->id]] : null
+        200,
+        'Registro agregado correctamente',
+        null
+      );
+    } catch (Throwable $err) {
+      DB::rollBack();
+      return $this->rsp(500, null, $err);
+    }
+  }
+
+  public function setIamges($id, Request $request) {
+    DB::beginTransaction();
+
+    try {
+
+      $valid = Event::validImages($request->all());
+
+      if ($valid->fails()) {
+        DB::rollBack();
+        return $this->rsp(422, $valid->errors()->first(), null, $valid->errors()->toArray());
+      }
+
+      $company_user = CompanyUser::getFirstByUser($request->user()->id);
+
+      if (!$company_user) {
+        DB::rollBack();
+        return $this->rsp(403, 'El usuario no pertenece a una compañía');
+      }
+
+      $item = Event::where('id', (int) $id)
+        ->where('company_id', $company_user->company_id)
+        ->first();
+
+      if (!$item) {
+        DB::rollBack();
+        return $this->rsp(404, 'Registro no encontrado');
+      }
+
+      $payload = [];
+      $payload['logo_doc'] = $request->file('logo_doc');
+      $payload['flyer_doc'] = $request->file('flyer_doc');
+
+      $item = Event::saveImages($item, $payload);
+
+      DB::commit();
+
+      return $this->rsp(
+        200,
+        'Registro editato correctamente',
+        null
+      );
+    } catch (Throwable $err) {
+      DB::rollBack();
+      return $this->rsp(500, null, $err);
+    }
+  }
+
+  public function setGeneral($id, Request $request) {
+    DB::beginTransaction();
+
+    try {
+
+      $valid = Event::validGeneral($request->all());
+
+      if ($valid->fails()) {
+        DB::rollBack();
+        return $this->rsp(422, $valid->errors()->first(), null, $valid->errors()->toArray());
+      }
+
+      $company_user = CompanyUser::getFirstByUser($request->user()->id);
+
+      if (!$company_user) {
+        DB::rollBack();
+        return $this->rsp(403, 'El usuario no pertenece a una compañía');
+      }
+
+      $item = Event::where('id', (int) $id)
+        ->where('company_id', $company_user->company_id)
+        ->first();
+
+      if (!$item) {
+        DB::rollBack();
+        return $this->rsp(404, 'Registro no encontrado');
+      }
+
+      $payload = $request->all();
+
+      $item = Event::saveGeneral($item, $payload);
+
+      DB::commit();
+
+      return $this->rsp(
+        200,
+        'Registro editato correctamente',
+        null
+      );
+    } catch (Throwable $err) {
+      DB::rollBack();
+      return $this->rsp(500, null, $err);
+    }
+  }
+
+  public function setAddress($id, Request $request) {
+    DB::beginTransaction();
+
+    try {
+
+      $valid = Event::validAddress($request->all());
+
+      if ($valid->fails()) {
+        DB::rollBack();
+        return $this->rsp(422, $valid->errors()->first(), null, $valid->errors()->toArray());
+      }
+
+      $company_user = CompanyUser::getFirstByUser($request->user()->id);
+
+      if (!$company_user) {
+        DB::rollBack();
+        return $this->rsp(403, 'El usuario no pertenece a una compañía');
+      }
+
+      $item = Event::where('id', (int) $id)
+        ->where('company_id', $company_user->company_id)
+        ->first();
+
+      if (!$item) {
+        DB::rollBack();
+        return $this->rsp(404, 'Registro no encontrado');
+      }
+
+      $payload = $request->all();
+
+      $item = Event::saveAddress($item, $payload);
+
+      DB::commit();
+
+      return $this->rsp(
+        200,
+        'Registro editato correctamente',
+        null
       );
     } catch (Throwable $err) {
       DB::rollBack();

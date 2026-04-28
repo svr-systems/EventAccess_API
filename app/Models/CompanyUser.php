@@ -135,4 +135,10 @@ class CompanyUser extends Model {
 
     return $item;
   }
+
+  public static function getFirstByUser(int $user_id): ?self {
+    return self::query()
+      ->where('user_id', $user_id)
+      ->first();
+  }
 }

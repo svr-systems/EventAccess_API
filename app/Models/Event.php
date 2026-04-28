@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Traits\HasAuditFields;
 use Carbon\Carbon;
 use DB;
 use Illuminate\Database\Eloquent\Model;
@@ -10,6 +11,7 @@ use App\Support\DisplayId;
 use App\Support\Input;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Notifications\Notifiable;
@@ -17,7 +19,7 @@ use Illuminate\Support\Facades\Validator;
 use Laravel\Passport\HasApiTokens;
 
 class Event extends Model {
-  use HasApiTokens, HasFactory, Notifiable;
+  use HasApiTokens, HasFactory, Notifiable, HasAuditFields;
 
   /**
    * ===========================================
@@ -52,8 +54,20 @@ class Event extends Model {
     return $this->belongsTo(User::class, 'updated_by_id');
   }
 
+  public function municipality(): BelongsTo {
+    return $this->belongsTo(Municipality::class, 'municipality_id');
+  }
+
   public function company_users() {
     return $this->hasMany(CompanyUser::class);
+  }
+
+  public function company(): BelongsTo {
+    return $this->belongsTo(Company::class);
+  }
+
+  public function presentation_dates(): HasMany {
+    return $this->hasMany(PresentationDate::class, 'event_id');
   }
 
   /**
@@ -72,33 +86,87 @@ class Event extends Model {
    */
   public static function validData(array $data) {
     $rules = [
-      'has_stands' => ['required', 'boolean'],
-
-      'has_buyers' => ['required', 'boolean'],
-
-      'company_id' => ['required', 'integer', 'exists:companies,id'],
-
       'name' => ['required', 'string', 'min:2', 'max:255'],
       'description' => ['nullable', 'string', 'min:2'],
 
       'place_name' => ['required', 'string', 'min:2', 'max:60'],
       'address' => ['required', 'string', 'min:2', 'max:60'],
+      'municipality_id' => ['required', 'integer', 'exists:municipalities,id'],
+      'address_reference' => ['required', 'string', 'min:2', 'max:150'],
 
-      'latitude' => ['nullable', 'numeric', 'between:-90,90'],
-      'longitude' => ['nullable', 'numeric', 'between:-180,180'],
+      'logo_doc' => ['nullable', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+      'flyer_doc' => ['nullable', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
 
-      'is_public' => ['required', 'boolean'],
-
-      'sale_start_at' => ['required', 'date'],
-      'sale_end_at' => ['required', 'date', 'after_or_equal:sale_start_at'],
+      // 'presentation_dates' => ['required', 'json'],
     ];
 
     $msgs = [
-      'sale_end_at.after_or_equal' => 'La fecha de fin de venta debe ser posterior al inicio'
-      //   'phone.regex' => 'El teléfono debe contener 10 dígitos',
-      //   'logo_doc.image' => 'La fotografía debe ser una imagen válida',
-      //   'logo_doc.mimes' => 'La fotografía debe ser JPG o PNG',
-      //   'logo_doc.max' => 'La fotografía no debe exceder 2MB',
+      'name.required' => 'El nombre del evento es obligatorio',
+      'place_name.required' => 'El nombre del lugar es obligatorio',
+      'address.required' => 'La dirección es obligatoria',
+      'municipality_id.required' => 'La ciudad es obligatoria',
+      'municipality_id.exists' => 'La ciudad seleccionada no existe',
+      'address_reference.required' => 'La referencia adicional es obligatoria',
+
+      'logo_doc.image' => 'El logo debe ser una imagen',
+      'flyer_doc.image' => 'El flyer debe ser una imagen',
+    ];
+
+    return Validator::make($data, $rules, $msgs);
+  }
+  public static function validImages(array $data) {
+    $rules = [
+      'logo_doc' => ['nullable', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+      'flyer_doc' => ['nullable', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
+    ];
+
+    $msgs = [
+      'logo_doc.image' => 'El logo debe ser una imagen',
+      'flyer_doc.image' => 'El flyer debe ser una imagen',
+    ];
+
+    $validator = Validator::make($data, $rules, $msgs);
+
+    // Validación extra: al menos uno debe venir
+    $validator->after(function ($validator) use ($data) {
+      $logo = data_get($data, 'logo_doc');
+      $flyer = data_get($data, 'flyer_doc');
+
+      if (!$logo && !$flyer) {
+        $validator->errors()->add('logo_doc', 'No se ha cargado ninguna imagen.');
+      }
+    });
+
+    return $validator;
+  }
+  public static function validGeneral(array $data) {
+    $rules = [
+      'name' => ['required', 'string', 'min:2', 'max:255'],
+      'description' => ['nullable', 'string', 'min:2'],
+    ];
+
+    $msgs = [
+      'name.required' => 'El nombre del evento es obligatorio',
+    ];
+
+    return Validator::make($data, $rules, $msgs);
+  }
+
+  public static function validAddress(array $data) {
+    $rules = [
+
+      'place_name' => ['required', 'string', 'min:2', 'max:60'],
+      'address' => ['required', 'string', 'min:2', 'max:60'],
+      'municipality_id' => ['required', 'integer', 'exists:municipalities,id'],
+      'address_reference' => ['required', 'string', 'min:2', 'max:150'],
+    ];
+
+    $msgs = [
+      'place_name.required' => 'El nombre del lugar es obligatorio',
+      'address.required' => 'La dirección es obligatoria',
+      'municipality_id.required' => 'La ciudad es obligatoria',
+      'municipality_id.exists' => 'La ciudad seleccionada no existe',
+      'address_reference.required' => 'La referencia adicional es obligatoria'
     ];
 
     return Validator::make($data, $rules, $msgs);
@@ -111,34 +179,43 @@ class Event extends Model {
    */
   public static function getItems(Request $request) {
     $is_active = $request->query('is_active', 1);
+    $company_user = CompanyUser::getFirstByUser($request->user()->id);
 
     $items = self::query();
 
     $items->select([
       'events.id',
       'events.is_active',
-      'events.has_stands',
-      'events.has_buyers',
-      'events.company_id',
       'events.name',
       'events.description',
       'events.place_name',
       'events.address',
-      'events.latitude',
-      'events.longitude',
       'events.logo_path',
       'events.flyer_path',
-      'events.is_public',
-      'events.sale_start_at',
-      'events.sale_end_at',
+      'events.municipality_id',
+      'events.address_reference',
     ]);
 
-    $items->where('events.is_active', (bool) ((int) $is_active));
+    $items->where('events.is_active', (bool) ((int) $is_active))->
+      where('company_id', $company_user->company_id);
 
-    return $items->get();
+    $items = $items->get();
+
+    $items->map(function ($item) {
+      $item->logo_b64 = StorageMgrService::getBase64($item->logo_path, 'Event');
+      $item->logo_doc = null;
+
+      $item->flyer_b64 = StorageMgrService::getBase64($item->flyer_path, 'Event');
+      $item->flyer_doc = null;
+
+      return $item;
+    });
+
+    return $items;
   }
 
   public static function getItem($id, Request $request = null) {
+    $company_user = CompanyUser::getFirstByUser($request->user()->id);
     $item = self::query();
 
     $item->select(['events.*']);
@@ -146,9 +223,27 @@ class Event extends Model {
     $item->with([
       'created_by:id,email,name,paternal_surname,maternal_surname',
       'updated_by:id,email,name,paternal_surname,maternal_surname',
+      'municipality:id,name,state_id',
+      'municipality.state:id,name',
+
+      'presentation_dates' => function ($query) {
+        $query->select([
+          'id',
+          'event_id',
+          'is_active',
+          'date',
+          'reception_time',
+          'start_time',
+          'end_time',
+        ])
+          ->where('is_active', true)
+          ->orderBy('date')
+          ->orderBy('start_time');
+      },
     ]);
 
-    $item->whereKey((int) $id);
+    $item->whereKey((int) $id)->
+      where('company_id', $company_user->company_id);
 
     $item = $item->first();
 
@@ -174,18 +269,14 @@ class Event extends Model {
     $logo_doc = data_get($data, 'logo_doc');
     $flyer_doc = data_get($data, 'flyer_doc');
 
-    $item->has_stands = Input::toBool(data_get($data, 'has_stands'));
-    $item->has_buyers = Input::toBool(data_get($data, 'has_buyers'));
     $item->company_id = Input::toId(data_get($data, 'company_id'));
     $item->name = Input::toUpper(data_get($data, 'name'));
     $item->description = Input::toUpper(data_get($data, 'description'));
     $item->place_name = Input::toUpper(data_get($data, 'place_name'));
     $item->address = Input::toUpper(data_get($data, 'address'));
-    $item->latitude = Input::toFloat(data_get($data, 'latitude'));
-    $item->longitude = Input::toFloat(data_get($data, 'longitude'));
-    $item->is_public = Input::toBool(data_get($data, 'is_public'));
-    $item->sale_start_at = Input::toText(data_get($data, 'sale_start_at'));
-    $item->sale_end_at = Input::toText(data_get($data, 'sale_end_at'));
+    $item->municipality_id = Input::toId(data_get($data, 'municipality_id'));
+    $item->address_reference = Input::toUpper(data_get($data, 'address_reference'));
+
     $item->logo_path = StorageMgrService::syncPath(
       $item->logo_path,
       $logo_doc instanceof UploadedFile ? $logo_doc : null,
@@ -196,6 +287,49 @@ class Event extends Model {
       $flyer_doc instanceof UploadedFile ? $flyer_doc : null,
       'Event'
     );
+
+    $item->save();
+
+    return $item;
+  }
+
+  public static function saveImages(self $item, array $data): self {
+    $logo_doc = data_get($data, 'logo_doc');
+    $flyer_doc = data_get($data, 'flyer_doc');
+
+    $item->logo_path = StorageMgrService::syncPath(
+      $item->logo_path,
+      $logo_doc instanceof UploadedFile ? $logo_doc : null,
+      'Event'
+    );
+
+    $item->flyer_path = StorageMgrService::syncPath(
+      $item->flyer_path,
+      $flyer_doc instanceof UploadedFile ? $flyer_doc : null,
+      'Event'
+    );
+
+    $item->save();
+
+    return $item;
+  }
+
+  public static function saveGeneral(self $item, array $data): self {
+
+    $item->name = Input::toUpper(data_get($data, 'name'));
+    $item->description = Input::toUpper(data_get($data, 'description'));
+
+    $item->save();
+
+    return $item;
+  }
+  
+  public static function saveAddress(self $item, array $data): self {
+
+    $item->place_name = Input::toUpper(data_get($data, 'place_name'));
+    $item->address = Input::toUpper(data_get($data, 'address'));
+    $item->municipality_id = Input::toId(data_get($data, 'municipality_id'));
+    $item->address_reference = Input::toUpper(data_get($data, 'address_reference'));
 
     $item->save();
 
