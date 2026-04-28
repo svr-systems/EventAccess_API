@@ -223,6 +223,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/events/stand_requests/{id}/approved', [StandRequestController::class, 'setApproved']);
 
         Route::patch('/events/event_stand_configs/activate', [EventController::class, 'standActivate']);
+        Route::get('/events/event_stand_configs/status', [EventController::class, 'getStandStatus']);
         Route::apiResource('/events/event_stand_configs', EventStandConfigController::class);
         Route::patch('/events/event_stand_configs/{id}/activate', [EventStandConfigController::class, 'activate']);
 

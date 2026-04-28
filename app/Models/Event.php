@@ -260,6 +260,20 @@ class Event extends Model {
     return $item;
   }
 
+  public static function getStandStatus(Request $request = null) {
+    $company_user = CompanyUser::getFirstByUser($request->user()->id);
+    $item = self::query();
+
+    $item->select(['events.has_stands']);
+
+    $item->whereKey((int) $request->event_id)->
+      where('company_id', $company_user->company_id);
+
+    $item = $item->first();
+
+    return $item;
+  }
+
   /**
    * ===========================================
    * GUARDADO DE DATOS

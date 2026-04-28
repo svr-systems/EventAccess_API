@@ -295,6 +295,22 @@ class EventController extends Controller {
     }
   }
 
+  public function getStandStatus(Request $request) {
+    try {
+      $item = Event::getStandStatus($request);
+
+      if (is_null($item)) {
+        return $this->rsp(404, 'Registro no encontrado');
+      }
+
+      return $this->rsp(200, 'Registro retornado correctamente', [
+        'has_stands' => $item->has_stands,
+      ]);
+    } catch (Throwable $err) {
+      return $this->rsp(500, null, $err);
+    }
+  }
+
   /**
    * ===========================================
    * PUBLIC
