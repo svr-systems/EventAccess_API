@@ -43,10 +43,6 @@ class EventStandConfig extends Model {
     return $this->belongsTo(User::class, 'updated_by_id');
   }
 
-  public function stand_type(): BelongsTo {
-    return $this->belongsTo(StandType::class, 'stand_type_id');
-  }
-
   /**
    * ===========================================
    * ACCESSORES
@@ -63,59 +59,40 @@ class EventStandConfig extends Model {
    */
   public static function validData(array $data) {
     $rules = [
-      'stand_type_id' => ['required', 'integer', 'exists:stand_types,id'],
+      'event_id' => ['required', 'integer', 'exists:events,id'],
 
-      'capacity' => ['required', 'integer', 'min:1'],
+      'name' => ['required', 'string', 'min:2', 'max:60'],
 
-      'reserved' => ['nullable', 'integer', 'min:0'],
+      'capacity' => ['required', 'integer', 'min:0'],
+      'price' => ['required', 'numeric', 'min:0', 'max:999999999.99'],
 
-      'price' => ['required', 'numeric', 'min:0'],
+      'size_length' => ['nullable', 'numeric', 'min:0', 'max:999.99'],
+      'size_width' => ['nullable', 'numeric', 'min:0', 'max:999.99'],
+      'size_height' => ['nullable', 'numeric', 'min:0', 'max:999.99'],
 
-      'size_length' => ['nullable', 'numeric', 'min:0'],
-
-      'size_width' => ['nullable', 'numeric', 'min:0'],
-
-      'size_height' => ['nullable', 'numeric', 'min:0'],
-
-      'has_electricity' => ['required', 'boolean'],
-      'has_water' => ['required', 'boolean'],
-      'has_internet' => ['required', 'boolean']
+      'has_electricity' => ['nullable', 'boolean'],
+      'has_water' => ['nullable', 'boolean'],
+      'has_internet' => ['nullable', 'boolean'],
     ];
 
     $msgs = [
+      'event_id.required' => 'El evento es obligatorio',
+      'event_id.exists' => 'El evento seleccionado no existe',
 
-      'stand_type_id.required' => 'Debe seleccionar un tipo de stand.',
-      'stand_type_id.integer' => 'El tipo de stand no es válido.',
-      'stand_type_id.exists' => 'El tipo de stand seleccionado no existe.',
+      'name.required' => 'El nombre del stand es obligatorio',
+      'name.max' => 'El nombre del stand no puede tener más de 60 caracteres',
 
-      'capacity.required' => 'Debe indicar la cantidad de stands disponibles.',
-      'capacity.integer' => 'La cantidad de stands debe ser un número entero.',
-      'capacity.min' => 'La cantidad de stands debe ser al menos 1.',
+      'capacity.required' => 'La capacidad es obligatoria',
+      'capacity.integer' => 'La capacidad debe ser un número entero',
+      'capacity.min' => 'La capacidad no puede ser negativa',
 
-      'reserved.integer' => 'El número de stands reservados debe ser un número entero.',
-      'reserved.min' => 'El número de stands reservados no puede ser negativo.',
+      'price.required' => 'El precio es obligatorio',
+      'price.numeric' => 'El precio debe ser un número válido',
+      'price.min' => 'El precio no puede ser negativo',
 
-      'price.required' => 'Debe indicar el precio del stand.',
-      'price.numeric' => 'El precio del stand debe ser un valor numérico.',
-      'price.min' => 'El precio del stand no puede ser negativo.',
-
-      'size_length.numeric' => 'El largo del stand debe ser un valor numérico.',
-      'size_length.min' => 'El largo del stand no puede ser negativo.',
-
-      'size_width.numeric' => 'El ancho del stand debe ser un valor numérico.',
-      'size_width.min' => 'El ancho del stand no puede ser negativo.',
-
-      'size_height.numeric' => 'El alto del stand debe ser un valor numérico.',
-      'size_height.min' => 'El alto del stand no puede ser negativo.',
-
-      'has_electricity.required' => 'Debe indicar si el stand cuenta con electricidad.',
-      'has_electricity.boolean' => 'El valor de electricidad no es válido.',
-
-      'has_water.required' => 'Debe indicar si el stand cuenta con agua.',
-      'has_water.boolean' => 'El valor de agua no es válido.',
-
-      'has_internet.required' => 'Debe indicar si el stand cuenta con internet.',
-      'has_internet.boolean' => 'El valor de internet no es válido.'
+      'size_length.numeric' => 'El largo debe ser un número válido',
+      'size_width.numeric' => 'El ancho debe ser un número válido',
+      'size_height.numeric' => 'El alto debe ser un número válido',
     ];
 
     return Validator::make($data, $rules, $msgs);
@@ -134,7 +111,8 @@ class EventStandConfig extends Model {
     $items->select([
       'event_stand_configs.id',
       'event_stand_configs.is_active',
-      'event_stand_configs.stand_type_id',
+      'event_stand_configs.event_id',
+      'event_stand_configs.name',
       'event_stand_configs.capacity',
       'event_stand_configs.price',
       'event_stand_configs.size_length',
@@ -145,10 +123,9 @@ class EventStandConfig extends Model {
       'event_stand_configs.has_internet',
     ]);
 
-    $items->join('stand_types', 'stand_types.id', '=', 'event_stand_configs.stand_type_id');
 
     $items->where('event_stand_configs.is_active', (bool) ((int) $is_active))->
-      where('stand_types.event_id', $request->event_id);
+      where('event_stand_configs.event_id', $request->event_id);
 
     return $items->get();
   }
@@ -161,7 +138,6 @@ class EventStandConfig extends Model {
     $item->with([
       'created_by:id,email,name,paternal_surname,maternal_surname',
       'updated_by:id,email,name,paternal_surname,maternal_surname',
-      'stand_type:id,name',
     ]);
 
     $item->whereKey((int) $id);
@@ -181,7 +157,8 @@ class EventStandConfig extends Model {
    * ===========================================
    */
   public static function saveData(self $item, array $data): self {
-    $item->stand_type_id = Input::toId(data_get($data, 'stand_type_id'));
+    $item->event_id = Input::toId(data_get($data, 'event_id'));
+    $item->name = Input::toUpper(data_get($data, 'name'));
     $item->capacity = Input::toInt(data_get($data, 'capacity'));
     $item->price = Input::toFloat(data_get($data, 'price'));
     $item->size_length = Input::toFloat(data_get($data, 'size_length'));

@@ -258,6 +258,43 @@ class EventController extends Controller {
     }
   }
 
+  public function standActivate(Request $request) {
+    DB::beginTransaction();
+
+    try {
+
+      $company_user = CompanyUser::getFirstByUser($request->user()->id);
+
+      if (!$company_user) {
+        DB::rollBack();
+        return $this->rsp(403, 'El usuario no pertenece a una compañía');
+      }
+
+      $item = Event::where('id', (int) $request->event_id)
+        ->where('company_id', $company_user->company_id)
+        ->first();
+
+      if (!$item) {
+        DB::rollBack();
+        return $this->rsp(404, 'Registro no encontrado');
+      }
+
+      $item->has_stands = !$item->has_stands;
+      $item->save();
+
+      DB::commit();
+
+      return $this->rsp(
+        200,
+        'Registro editato correctamente',
+        ["has_stands" => $item->has_stands]
+      );
+    } catch (Throwable $err) {
+      DB::rollBack();
+      return $this->rsp(500, null, $err);
+    }
+  }
+
   /**
    * ===========================================
    * PUBLIC

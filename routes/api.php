@@ -222,14 +222,13 @@ Route::prefix('v1')->group(function () {
         Route::get('/events/stand_requests/{id}', [StandRequestController::class, 'companyShow']);
         Route::post('/events/stand_requests/{id}/approved', [StandRequestController::class, 'setApproved']);
 
+        Route::patch('/events/event_stand_configs/activate', [EventController::class, 'standActivate']);
         Route::apiResource('/events/event_stand_configs', EventStandConfigController::class);
         Route::patch('/events/event_stand_configs/{id}/activate', [EventStandConfigController::class, 'activate']);
 
         Route::apiResource('/events/areas', EventAreaController::class);
         Route::patch('/events/areas/{id}/activate', [EventAreaController::class, 'activate']);
 
-        Route::apiResource('/events/stand_types', StandTypeController::class);
-        Route::patch('/events/stand_types/{id}/activate', [StandTypeController::class, 'activate']);
 
         Route::apiResource('/events/presentation_tickets', PresentationTicketController::class);
         Route::patch('/events/presentation_tickets/{id}/activate', [PresentationTicketController::class, 'activate']);
