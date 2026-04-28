@@ -212,6 +212,10 @@ Route::prefix('v1')->group(function () {
     Route::middleware([EnsureUserIsCompany::class])->group(function () {
       Route::prefix('company')->group(function () {
 
+        Route::patch('/events/meeting_windows/activate', [EventController::class, 'meetingActivate']);
+        Route::get('/events/meeting_windows/status', [EventController::class, 'getMeetingStatus']);
+        Route::patch('/events/meeting_windows/time', [EventController::class, 'setMeetingTime']);
+        Route::get('/events/meeting_windows/time', [EventController::class, 'getMeetingTime']);
         Route::apiResource('/events/meeting_windows', EventMeetingWindowController::class);
         Route::patch('/events/meeting_windows/{id}/activate', [EventMeetingWindowController::class, 'activate']);
 

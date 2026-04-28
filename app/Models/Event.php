@@ -274,6 +274,34 @@ class Event extends Model {
     return $item;
   }
 
+  public static function getMeetingStatus(Request $request = null) {
+    $company_user = CompanyUser::getFirstByUser($request->user()->id);
+    $item = self::query();
+
+    $item->select(['events.meeting_time']);
+
+    $item->whereKey((int) $request->event_id)->
+      where('company_id', $company_user->company_id);
+
+    $item = $item->first();
+
+    return $item;
+  }
+
+  public static function getTime(Request $request = null) {
+    $company_user = CompanyUser::getFirstByUser($request->user()->id);
+    $item = self::query();
+
+    $item->select(['events.meeting_time']);
+
+    $item->whereKey((int) $request->event_id)->
+      where('company_id', $company_user->company_id);
+
+    $item = $item->first();
+
+    return $item;
+  }
+
   /**
    * ===========================================
    * GUARDADO DE DATOS

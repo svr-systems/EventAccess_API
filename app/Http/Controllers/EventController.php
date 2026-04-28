@@ -311,6 +311,112 @@ class EventController extends Controller {
     }
   }
 
+  public function meetingActivate(Request $request) {
+    DB::beginTransaction();
+
+    try {
+
+      $company_user = CompanyUser::getFirstByUser($request->user()->id);
+
+      if (!$company_user) {
+        DB::rollBack();
+        return $this->rsp(403, 'El usuario no pertenece a una compañía');
+      }
+
+      $item = Event::where('id', (int) $request->event_id)
+        ->where('company_id', $company_user->company_id)
+        ->first();
+
+      if (!$item) {
+        DB::rollBack();
+        return $this->rsp(404, 'Registro no encontrado');
+      }
+
+      $item->has_buyers = !$item->has_buyers;
+      $item->save();
+
+      DB::commit();
+
+      return $this->rsp(
+        200,
+        'Registro editato correctamente',
+        ["has_buyers" => $item->has_buyers]
+      );
+    } catch (Throwable $err) {
+      DB::rollBack();
+      return $this->rsp(500, null, $err);
+    }
+  }
+
+  public function getMeetingStatus(Request $request) {
+    try {
+      $item = Event::getMeetingStatus($request);
+
+      if (is_null($item)) {
+        return $this->rsp(404, 'Registro no encontrado');
+      }
+
+      return $this->rsp(200, 'Registro retornado correctamente', [
+        'has_buyers' => $item->has_buyers,
+      ]);
+    } catch (Throwable $err) {
+      return $this->rsp(500, null, $err);
+    }
+  }
+
+  public function setMeetingTime(Request $request) {
+    DB::beginTransaction();
+
+    try {
+
+      $company_user = CompanyUser::getFirstByUser($request->user()->id);
+
+      if (!$company_user) {
+        DB::rollBack();
+        return $this->rsp(403, 'El usuario no pertenece a una compañía');
+      }
+
+      $item = Event::where('id', (int) $request->event_id)
+        ->where('company_id', $company_user->company_id)
+        ->first();
+
+      if (!$item) {
+        DB::rollBack();
+        return $this->rsp(404, 'Registro no encontrado');
+      }
+
+      $item->meeting_time = $request->meeting_time;
+      $item->save();
+
+      DB::commit();
+
+      return $this->rsp(
+        200,
+        'Registro editato correctamente',
+        ["meeting_time" => $item->meeting_time]
+      );
+    } catch (Throwable $err) {
+      DB::rollBack();
+      return $this->rsp(500, null, $err);
+    }
+  }
+
+  public function getMeetingTime(Request $request) {
+    try {
+      $item = Event::getMeetingStatus($request);
+
+      if (is_null($item)) {
+        return $this->rsp(404, 'Registro no encontrado');
+      }
+
+      return $this->rsp(200, 'Registro retornado correctamente', [
+        'meeting_time' => $item->meeting_time,
+      ]);
+    } catch (Throwable $err) {
+      return $this->rsp(500, null, $err);
+    }
+  }
+
   /**
    * ===========================================
    * PUBLIC
