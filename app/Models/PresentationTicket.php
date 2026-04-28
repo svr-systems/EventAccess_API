@@ -163,10 +163,13 @@ class PresentationTicket extends Model {
       'presentation_tickets.id',
       'presentation_tickets.is_active',
       'presentation_tickets.presentation_date_id',
-      'presentation_tickets.ticket_type_id',
+      'presentation_tickets.name',
+      'presentation_tickets.description',
       'presentation_tickets.price',
       'presentation_tickets.capacity',
       'presentation_tickets.sold',
+      'presentation_tickets.start_sale',
+      'presentation_tickets.end_sale',
     ]);
 
     $items->with([
@@ -174,7 +177,7 @@ class PresentationTicket extends Model {
     ]);
 
     $items->where('presentation_tickets.is_active', (bool) ((int) $is_active))->
-      where('presentation_date_id', $request->presentation_date_id);
+      where('event_id', $request->event_id);
 
     return $items->get();
   }

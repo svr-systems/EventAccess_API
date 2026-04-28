@@ -233,14 +233,11 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('/events/presentation_tickets', PresentationTicketController::class);
         Route::patch('/events/presentation_tickets/{id}/activate', [PresentationTicketController::class, 'activate']);
 
-        Route::apiResource('/events/ticket_types', TicketTypeController::class);
-        Route::patch('/events/ticket_types/{id}/activate', [TicketTypeController::class, 'activate']);
-
         Route::apiResource('/events/presentation_dates', PresentationDateController::class);
         Route::patch('/events/presentation_dates/{id}/activate', [PresentationDateController::class, 'activate']);
 
         Route::apiResource('/events', EventController::class);
-        Route::patch('/events/{id}/images', [EventController::class, 'setIamges']);
+        Route::post('/events/{id}/images', [EventController::class, 'setIamges']);
         Route::patch('/events/{id}/general', [EventController::class, 'setGeneral']);
         Route::patch('/events/{id}/address', [EventController::class, 'setAddress']);
         Route::patch('/events/{id}/activate', [EventController::class, 'activate']);
