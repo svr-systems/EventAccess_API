@@ -240,6 +240,8 @@ class PresentationTicket extends Model {
       'presentation_tickets.id',
       'presentation_tickets.is_active',
       'presentation_tickets.presentation_date_id',
+      'presentation_tickets.name',
+      'presentation_tickets.description',
       'presentation_tickets.price',
       'presentation_tickets.capacity',
       'presentation_tickets.sold',
