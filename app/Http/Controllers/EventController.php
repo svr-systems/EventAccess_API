@@ -113,7 +113,7 @@ class EventController extends Controller {
       return $this->rsp(
         200,
         'Registro agregado correctamente',
-        null
+        ['item' => ['id' => $item->id]]
       );
     } catch (Throwable $err) {
       DB::rollBack();
@@ -403,7 +403,7 @@ class EventController extends Controller {
 
   public function getMeetingTime(Request $request) {
     try {
-      $item = Event::getMeetingStatus($request);
+      $item = Event::getMeetingTime($request);
 
       if (is_null($item)) {
         return $this->rsp(404, 'Registro no encontrado');

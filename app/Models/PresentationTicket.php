@@ -240,14 +240,9 @@ class PresentationTicket extends Model {
       'presentation_tickets.id',
       'presentation_tickets.is_active',
       'presentation_tickets.presentation_date_id',
-      'presentation_tickets.ticket_type_id',
       'presentation_tickets.price',
       'presentation_tickets.capacity',
       'presentation_tickets.sold',
-    ]);
-
-    $items->with([
-      'ticket_type:id,name,description'
     ]);
 
     $items->where('presentation_tickets.is_active', 1)->

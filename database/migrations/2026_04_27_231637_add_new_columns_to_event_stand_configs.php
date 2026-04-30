@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
   public function up(): void {
     Schema::table('event_stand_configs', function (Blueprint $table) {
-    //   $table->dropForeign(['stand_type_id']);
+      $table->dropForeign(['stand_type_id']);
 
       $table->foreignId('event_id')
         ->after('updated_by_id')

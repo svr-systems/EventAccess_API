@@ -278,7 +278,7 @@ class Event extends Model {
     $company_user = CompanyUser::getFirstByUser($request->user()->id);
     $item = self::query();
 
-    $item->select(['events.meeting_time']);
+    $item->select(['events.has_buyers']);
 
     $item->whereKey((int) $request->event_id)->
       where('company_id', $company_user->company_id);
@@ -288,7 +288,7 @@ class Event extends Model {
     return $item;
   }
 
-  public static function getTime(Request $request = null) {
+  public static function getMeetingTime(Request $request = null) {
     $company_user = CompanyUser::getFirstByUser($request->user()->id);
     $item = self::query();
 
@@ -365,7 +365,7 @@ class Event extends Model {
 
     return $item;
   }
-  
+
   public static function saveAddress(self $item, array $data): self {
 
     $item->place_name = Input::toUpper(data_get($data, 'place_name'));
@@ -450,7 +450,10 @@ class Event extends Model {
 
     return $items;
   }
+
   public static function getPublicItem($id, Request $request = null) {
+    $event_id = (int) $id;
+
     $item = self::query();
 
     $item->select([
@@ -480,7 +483,7 @@ class Event extends Model {
       'presentation_dates.id'
     );
 
-    $item->where('events.id', (int) $id);
+    $item->where('events.id', $event_id);
 
     $item->where(function ($q) {
       $q->whereNull('presentation_tickets.capacity')
@@ -513,8 +516,48 @@ class Event extends Model {
     $item->flyer_b64 = StorageMgrService::getBase64($item->flyer_path, 'Event');
     $item->flyer_doc = null;
 
+    $dates = PresentationDate::query()
+      ->select(['date', 'start_time', 'end_time'])
+      ->where('event_id', $event_id)
+      ->where('is_active', true)
+      ->orderBy('date')
+      ->get();
+
+    $item->presentation_date = [
+      'date' => self::formatPresentationDateText($dates),
+      'time' => self::formatPresentationTimeText($dates), 
+      'total' => $dates->count(),
+    ];
+
+    $buyers = Buyer::query()
+      ->select([
+        'buyers.id',
+        'buyers.name',
+        'buyers.logo_path',
+      ])
+      ->join('event_buyers', 'event_buyers.buyer_id', '=', 'buyers.id')
+      ->where('event_buyers.event_id', $event_id)
+      ->where('event_buyers.is_active', true)
+      ->where('buyers.is_active', true)
+      ->orderBy('buyers.name')
+      ->get();
+
+    $buyers->each(function ($buyer) {
+      $buyer->logo_b64 = StorageMgrService::getBase64($buyer->logo_path, 'Buyer');
+      unset($buyer->logo_path);
+    });
+
+    $item->total_buyers = $buyers->count();
+    $item->buyers = $buyers;
+
+    $item->total_stands = EventStandConfig::query()
+      ->where('event_id', $event_id)
+      ->where('is_active', true)
+      ->sum('capacity');
+
     return $item;
   }
+
   public static function getSupplierItem($id, Request $request = null) {
     $item = self::query();
 
@@ -644,5 +687,65 @@ class Event extends Model {
     $item->flyer_doc = null;
 
     return $item;
+  }
+
+  private static function formatPresentationDateText($dates): ?string {
+    if ($dates->isEmpty()) {
+      return null;
+    }
+
+    Carbon::setLocale('es');
+
+    $parsed = $dates->map(fn($item) => Carbon::parse($item->date));
+
+    if ($parsed->count() === 1) {
+      return $parsed->first()->translatedFormat('j \\d\\e F \\d\\e Y');
+    }
+
+    $sameMonth = $parsed->every(function ($date) use ($parsed) {
+      return $date->month === $parsed->first()->month
+        && $date->year === $parsed->first()->year;
+    });
+
+    if ($sameMonth) {
+      $days = $parsed->pluck('day')->implode(' y ');
+
+      return $days . ' de ' . $parsed->first()->translatedFormat('F \\d\\e Y');
+    }
+
+    return $parsed
+      ->map(fn($date) => $date->translatedFormat('j \\d\\e F \\d\\e Y'))
+      ->implode(' y ');
+  }
+
+  private static function formatPresentationTimeText($dates): ?string {
+    if ($dates->isEmpty()) {
+      return null;
+    }
+
+    $first = $dates[0];
+
+    return self::formatTimeText($first->start_time)
+      . ' a '
+      . self::formatTimeText($first->end_time);
+  }
+
+  private static function formatTimeText($time): ?string {
+    if (is_null($time)) {
+      return null;
+    }
+
+    try {
+      // Si viene como HH:mm
+      if (strlen($time) === 5) {
+        return Carbon::createFromFormat('H:i', $time)->format('g:i a');
+      }
+
+      // Si viene como HH:mm:ss
+      return Carbon::createFromFormat('Y-m-d H:i:s', $time)->format('g:i a');
+
+    } catch (\Exception $e) {
+      return null;
+    }
   }
 }
