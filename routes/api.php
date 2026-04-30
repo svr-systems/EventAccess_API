@@ -109,7 +109,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/offer_areas/suppliers', [BuyerController::class, 'getMatchedSupplierAreas']);
 
         Route::get('/profile', [BuyerController::class, 'show']);
-        Route::put('/profile', [BuyerController::class, 'store']);
+        Route::post('/profile', [BuyerController::class, 'store']);
 
         Route::apiResource('/offer_areas', BuyerOfferAreaController::class);
         Route::patch('/offer_areas/{id}/activate', [BuyerOfferAreaController::class, 'activate']);
@@ -177,7 +177,7 @@ Route::prefix('v1')->group(function () {
 
         
         Route::get('/profile', [SupplierController::class, 'show']);
-        Route::put('/profile', [SupplierController::class, 'store']);
+        Route::post('/profile', [SupplierController::class, 'store']);
         // Route::patch('/supplier/{id}/activate', [SupplierController::class, 'activate']);
 
         Route::get('/events/supplier', [EventSupplierController::class, 'index']);

@@ -42,14 +42,6 @@ class BuyerController extends Controller {
     }
   }
 
-  public function store(Request $request) {
-    return $this->storeUpdate(null, $request);
-  }
-
-  public function update(string $id, Request $request) {
-    return $this->storeUpdate($id, $request);
-  }
-
   public function destroy(string $id, Request $request) {
     return $this->setActive(Buyer::class, $id, $request, false);
   }
@@ -58,7 +50,7 @@ class BuyerController extends Controller {
     return $this->setActive(Buyer::class, $id, $request, true);
   }
 
-  protected function storeUpdate(?string $id, Request $request) {
+  public function store(Request $request) {
     DB::beginTransaction();
     $buyer = Buyer::getItem($request);
     $id = $buyer->id;
@@ -88,7 +80,7 @@ class BuyerController extends Controller {
         $item->updated_by_id = $request->user()->id;
       }
 
-      $payload = $request->all();
+      $payload = $request->except(['logo_doc']);
       $payload['logo_doc'] = $request->file('logo_doc');
 
       $item = Buyer::saveData($item, $payload);

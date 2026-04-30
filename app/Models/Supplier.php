@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Services\MeetingAvailabilityService;
+use Illuminate\Http\UploadedFile;
 use App\Services\StorageMgrService;
 use App\Support\DisplayId;
 use App\Support\Input;
