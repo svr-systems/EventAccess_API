@@ -82,6 +82,7 @@ class Certification extends Model {
 
     $items->select([
       'certifications.id',
+      'is_active',
       'certifications.name'
     ]);
 
