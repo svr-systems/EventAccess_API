@@ -30,7 +30,7 @@ class RoleSeeder extends Seeder {
         'name' => 'PROVEEDOR STAFF'
       ],
       [
-        'name' => 'STCOMPRADORAFF'
+        'name' => 'COMPRADOR'
       ],
     ];
 

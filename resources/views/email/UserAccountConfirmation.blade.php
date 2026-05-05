@@ -7,7 +7,7 @@
     <p class="text">
       Hola, {{ e($data['full_name'] ?? '') }}.
       <br><br>
-      Recibimos una solicitud para activar tu acceso a <strong>Nexora</strong>.
+      Recibimos una solicitud para activar tu acceso a <strong>NexoraPro</strong>.
       Para confirmar tu cuenta y continuar, haz clic en el siguiente botón:
     </p>
 

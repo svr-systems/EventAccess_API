@@ -7,7 +7,7 @@
     <p class="text">
       Hola, {{ e($data['full_name'] ?? '') }}.
       <br><br>
-      Tu cuenta de <strong>Nexora</strong> ha sido confirmada correctamente.
+      Tu cuenta de <strong>NexoraPro</strong> ha sido confirmada correctamente.
       Ya puedes iniciar sesión con tu correo y la contraseña que registraste.
     </p>
 
