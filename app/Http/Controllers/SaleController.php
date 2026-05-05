@@ -60,13 +60,13 @@ class SaleController extends Controller {
           $pdf = new PdfController;
           $pdf_name = $pdf->ticket($sale_item->id);
 
-          $file = [
-            'path' => $pdf_name,
-            'name' => $sale_item->ticket_code . '.pdf',
-            'mime' => 'application/pdf'
-          ];
+          // $file = [
+          //   'path' => $pdf_name,
+          //   'name' => $sale_item->ticket_code . '.pdf',
+          //   'mime' => 'application/pdf'
+          // ];
 
-          array_push($files, $file);
+          // array_push($files, $file);
         }
       }
 
@@ -74,15 +74,15 @@ class SaleController extends Controller {
 
       $item->save();
 
-      $user = User::find($request->user_id);
+      // $user = User::find($request->user_id);
 
-      DB::afterCommit(function () use ($user, $files) {
-        EmailService::tickets_purchased(
-          [$user->email],
-          [],
-          $files
-        );
-      });
+      // DB::afterCommit(function () use ($user, $files) {
+      //   EmailService::tickets_purchased(
+      //     [$user->email],
+      //     [],
+      //     $files
+      //   );
+      // });
 
       DB::commit();
 

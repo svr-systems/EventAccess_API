@@ -20,6 +20,18 @@ class RoleSeeder extends Seeder {
       [
         'name' => 'STAFF'
       ],
+      [
+        'name' => 'ASISTENTE'
+      ],
+      [
+        'name' => 'PROVEEDOR'
+      ],
+      [
+        'name' => 'PROVEEDOR STAFF'
+      ],
+      [
+        'name' => 'STCOMPRADORAFF'
+      ],
     ];
 
     Role::insert($items);

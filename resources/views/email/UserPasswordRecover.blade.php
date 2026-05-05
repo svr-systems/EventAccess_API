@@ -7,7 +7,7 @@
     <p class="text">
       Hola, {{ e($data['full_name'] ?? '') }}.
       <br><br>
-      Recibimos una solicitud para restablecer tu contraseña en <strong>EmailPro</strong>.
+      Recibimos una solicitud para restablecer tu contraseña en <strong>Nexora</strong>.
       Para continuar, haz clic en el siguiente botón:
     </p>
 

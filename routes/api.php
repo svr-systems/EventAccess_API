@@ -31,6 +31,7 @@ use App\Http\Controllers\TicketCheckinController;
 use App\Http\Controllers\TicketTypeController;
 use App\Http\Controllers\UserController;
 use App\Http\Middleware\EnsureUserIsAdmin;
+use App\Http\Middleware\EnsureUserIsAttendee;
 use App\Http\Middleware\EnsureUserIsBuyer;
 use App\Http\Middleware\EnsureUserIsCompany;
 use App\Http\Middleware\EnsureUserIsStaff;
@@ -88,6 +89,17 @@ Route::prefix('v1')->group(function () {
     });
   });
 
+  // -------------------------
+  // ATTENDEE
+  // -------------------------
+  Route::group(['middleware' => 'auth:api'], function () {
+    Route::middleware([EnsureUserIsAttendee::class])->group(function () {
+      Route::prefix('attendees')->group(function () {
+        Route::get('tickets', [PresentationTicketController::class, 'attendeeIndex']);
+      });
+    });
+  });
+
 
   // -------------------------
   // BUYERS
@@ -125,7 +137,7 @@ Route::prefix('v1')->group(function () {
         Route::patch('/users/{id}/activate', [BuyerUserController::class, 'activate']);
 
         Route::get('/events/buyer', [EventBuyerController::class, 'index']);
-        
+
         Route::get('/events/areas', [EventAreaController::class, 'buyerIndex']);
 
         Route::get('events/{id}', [EventController::class, 'buyerShow']);
@@ -143,7 +155,7 @@ Route::prefix('v1')->group(function () {
       Route::prefix('suppliers')->group(function () {
 
         Route::get('/catalogs/{catalog}', [CatalogController::class, 'supplierIndex']);
-        
+
         Route::get('/meetings', [MeetingController::class, 'supplierIndex']);
         Route::patch('/meetings/confirm', [MeetingController::class, 'supplierConfirm']);
 
@@ -175,7 +187,7 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('/users', SupplierUserController::class);
         Route::patch('/users/{id}/activate', [SupplierUserController::class, 'activate']);
 
-        
+
         Route::get('/profile', [SupplierController::class, 'show']);
         Route::post('/profile', [SupplierController::class, 'store']);
         // Route::patch('/supplier/{id}/activate', [SupplierController::class, 'activate']);
@@ -263,10 +275,10 @@ Route::prefix('v1')->group(function () {
   // -------------------------
   Route::middleware(['auth:api'])->group(function () {
     Route::middleware([EnsureUserIsAdmin::class])->group(function () {
-      
+
       Route::apiResource('certifications', CertificationController::class);
       Route::patch('certifications/{id}/activate', [CertificationController::class, 'activate']);
-      
+
       Route::apiResource('companies/users', CompanyUserController::class);
       Route::patch('companies/users/{id}/activate', [CompanyUserController::class, 'activate']);
 

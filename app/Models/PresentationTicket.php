@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Traits\HasAuditFields;
+use App\Services\QrService;
 use Illuminate\Database\Eloquent\Model;
 use App\Support\DisplayId;
 use App\Support\Input;
@@ -251,5 +252,43 @@ class PresentationTicket extends Model {
       where('presentation_date_id', $request->presentation_date_id);
 
     return $items->get();
+  }
+
+  /**
+   * ===========================================
+   * CONSULTAS PUBLIC
+   * ===========================================
+   */
+  public static function getAtendeeItems(Request $request) {
+    $items = Event::select([
+      'events.id',
+      'events.name',
+      'events.place_name',
+      'events.address',
+      'presentation_dates.date',
+      'presentation_dates.reception_time',
+      'presentation_dates.start_time',
+      'presentation_dates.end_time',
+      'sale_items.ticket_code'
+    ])
+      ->join('presentation_dates', 'presentation_dates.event_id', '=', 'events.id')
+      ->join('presentation_tickets', 'presentation_tickets.presentation_date_id', '=', 'presentation_dates.id')
+      ->join('sale_items', 'sale_items.presentation_ticket_id', '=', 'presentation_tickets.id')
+      ->join('sales', 'sales.id', '=', 'sale_items.sale_id')
+      ->where('presentation_tickets.is_active', 1)
+      ->where('sales.user_id', $request->user()->id);
+
+    $items = $items->get();
+
+    $items = $items->map(function ($item) {
+      $item->qr_b64 = QrService::makeEncryptedTicketBase64(
+        (string) $item->ticket_code,
+        'ticket_qr'
+      );
+
+      return $item;
+    });
+
+    return $items;
   }
 }

@@ -158,9 +158,9 @@ class BuyerUserController extends Controller
     DB::beginTransaction();
 
     try {
-      // $user = json_encode($request->user);
-      // $user_data = json_decode($user);
-      $user_data = json_decode($request->user);
+      $user = json_encode($request->user);
+      $user_data = json_decode($user);
+      // $user_data = json_decode($request->user);
       $user_data->role_id = 8;
 
       $email = Input::toLower($user_data->email);
@@ -196,13 +196,12 @@ class BuyerUserController extends Controller
       }
 
       $payload = (array) $user_data;
-      $payload['avatar_doc'] = $request->file('avatar_doc');
 
       $user = User::saveData($user, $payload);
 
-      // $buyer = json_encode($request->buyer);
-      // $buyer_data = (array) json_decode($buyer);
-      $buyer_data = (array) json_decode($request->buyer);
+      $buyer = json_encode($request->buyer);
+      $buyer_data = (array) json_decode($buyer);
+      // $buyer_data = (array) json_decode($request->buyer);
 
       $buyer = new Buyer;
       $buyer->created_by_id = $user->id;

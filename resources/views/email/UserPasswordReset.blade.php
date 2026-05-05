@@ -7,7 +7,7 @@
     <p class="text">
       Hola, {{ e($data['full_name'] ?? '') }}.
       <br><br>
-      Tu contraseña de <strong>EmailPro</strong> fue restablecida correctamente.
+      Tu contraseña de <strong>Nexora</strong> fue restablecida correctamente.
       Ya puedes iniciar sesión con tu correo y tu nueva contraseña.
     </p>
 

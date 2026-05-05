@@ -513,7 +513,7 @@ class UserController extends Controller {
       return $this->rsp(
         $store_mode ? 201 : 200,
         'Registro ' . ($store_mode ? 'agregado' : 'editado') . ' correctamente',
-        ['item' => ['id' => $item->id]]
+        ['item' => ['id' => $item->id,'is_store' => $store_mode]]
       );
     } catch (Throwable $err) {
       DB::rollBack();

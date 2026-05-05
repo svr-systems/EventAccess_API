@@ -165,9 +165,9 @@ class SupplierUserController extends Controller {
     DB::beginTransaction();
 
     try {
-      // $user = json_encode($request->user);
-      // $user_data = json_decode($user);
-      $user_data = json_decode($request->user);
+      $user = json_encode($request->user);
+      $user_data = json_decode($user);
+      // $user_data = json_decode($request->user);
       $user_data->role_id = 6;
 
       $email = Input::toLower($user_data->email);
@@ -203,13 +203,12 @@ class SupplierUserController extends Controller {
       }
 
       $payload = (array) $user_data;
-      $payload['avatar_doc'] = $request->file('avatar_doc');
 
       $user = User::saveData($user, $payload);
 
-      // $supplier = json_encode($request->supplier);
-      // $supplier_data = json_decode($supplier);
-      $supplier_data = (array) json_decode($request->supplier);
+      $supplier = json_encode($request->supplier);
+      $supplier_data = (array) json_decode($supplier);
+      // $supplier_data = (array) json_decode($request->supplier);
 
       $supplier = new Supplier;
       $supplier->created_by_id = $user->id;

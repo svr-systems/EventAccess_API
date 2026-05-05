@@ -7,11 +7,11 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
   public function up(): void {
     Schema::table('offers', function (Blueprint $table) {
-      // $table->dropForeign(['stand_type_id']);
-      // $table->dropForeign(['offers_event_id']);
-      // $table->dropForeign(['supplier_id']);
+      $table->dropForeign(['stand_type_id']);
+      $table->dropForeign(['offers_event_id']);
+      $table->dropForeign(['supplier_id']);
 
-      // $table->dropUnique('offers_event_id_supplier_id_stand_type_id_unique');
+      $table->dropUnique('offers_event_id_supplier_id_stand_type_id_unique');
 
       $table->foreignId('event_stand_config_id')
         ->after('updated_by_id')

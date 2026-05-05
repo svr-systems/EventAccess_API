@@ -15,27 +15,27 @@ class EmailService
    */
   public static function userAccountConfirmation(array $emails, array $data): void
   {
-    $data['link'] = self::frontLinkWithEncryptedId('/confirmar_cuenta', (string) data_get($data, 'id'));
+    $data['link'] = self::frontLinkWithEncryptedId('/confirmar-cuenta', (string) data_get($data, 'id'));
     self::send($emails, $data, 'Confirmar cuenta', 'UserAccountConfirmation');
   }
 
   public static function userAccountConfirm(array $emails, array $data): void
   {
     $email = (string) data_get($data, 'email', '');
-    $data['link'] = self::frontLink('/iniciar_sesion', $email !== '' ? ['email' => $email] : []);
+    $data['link'] = self::frontLink('/iniciar-sesion', $email !== '' ? ['email' => $email] : []);
     self::send($emails, $data, 'Cuenta confirmada', 'UserAccountConfirm');
   }
 
   public static function userPasswordRecover(array $emails, array $data): void
   {
-    $data['link'] = self::frontLinkWithEncryptedId('/restablecer_contrasena', (string) data_get($data, 'id'));
+    $data['link'] = self::frontLinkWithEncryptedId('/restablecer-contrasena', (string) data_get($data, 'id'));
     self::send($emails, $data, 'Recuperación de contraseña', 'UserPasswordRecover');
   }
 
   public static function userPasswordReset(array $emails, array $data): void
   {
     $email = (string) data_get($data, 'email', '');
-    $data['link'] = self::frontLink('/iniciar_sesion', $email !== '' ? ['email' => $email] : []);
+    $data['link'] = self::frontLink('/iniciar-sesion', $email !== '' ? ['email' => $email] : []);
     self::send($emails, $data, 'Contraseña restablecida', 'UserPasswordReset');
   }
   
