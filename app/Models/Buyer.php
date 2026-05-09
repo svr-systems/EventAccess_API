@@ -293,6 +293,10 @@ class Buyer extends Model {
     $item->municipality_id = Input::toId(data_get($data, 'municipality_id'));
     $item->zip = Input::onlyDigitsOrNull(data_get($data, 'zip'), 5);
 
+    $item->is_reviewed = null;
+    $item->reviewed_by_id = null;
+    $item->reviewed_at = null;
+
     $item->logo_path = StorageMgrService::syncPath(
       $item->logo_path,
       $logo_doc instanceof UploadedFile ? $logo_doc : null,
@@ -359,6 +363,7 @@ class Buyer extends Model {
       })
       ->where('supplier_event_areas.is_active', true)
       ->where('suppliers.is_active', true)
+      ->where('suppliers.is_reviewed', true)
       ->where('event_areas.is_active', true)
       ->where('event_areas.event_id', $event_id)
       ->whereNotExists(function ($query) {
@@ -499,4 +504,68 @@ class Buyer extends Model {
       'items' => $mapped,
     ];
   }
+
+  //COMPANY
+
+
+  public static function getNotReviewItems(Request $request = null) {
+    $items = self::query();
+
+    $items->select(['buyers.*']);
+
+    $items->with([
+      'municipality:id,name,state_id',
+      'municipality.state:id,name',
+    ]);
+
+    $items->join('event_buyers', 'event_buyers.buyer_id', 'buyers.id');
+
+    $items->where('buyers.is_active', '=', true)->
+      where('event_buyers.event_id', '=', $request->event_id);
+
+
+    $items->orderBy('is_reviewed')->
+      orderBy('name', 'asc');
+
+    $items = $items->get();
+
+    if (is_null($items)) {
+      return null;
+    }
+
+
+    return $items;
+  }
+
+
+  public static function getNotReviewItem(Request $request = null) {
+    $item = self::query();
+
+    $item->select(['buyers.*']);
+
+    $item->with([
+      'created_by:id,email',
+      'updated_by:id,email',
+      'municipality:id,name,state_id',
+      'municipality.state:id,name',
+    ]);
+
+    $item->join('event_buyers', 'event_buyers.buyer_id', 'buyers.id');
+
+    $item->where('buyers.is_active', '=', true)->
+      where('event_buyers.event_id', '=', $request->event_id)->
+      where('buyers.id', '=', $request->buyer_id);
+
+    $item = $item->first();
+
+    if (is_null($item)) {
+      return null;
+    }
+
+    $item->logo_b64 = StorageMgrService::getBase64($item->logo_path, 'Buyer');
+    $item->logo_doc = null;
+
+    return $item;
+  }
+
 }

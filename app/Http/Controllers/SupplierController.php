@@ -3,9 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\HasActiveToggle;
+use App\Models\SupplierUser;
+use App\Models\User;
+use App\Services\EmailService;
+use Illuminate\Http\UploadedFile;
 use App\Models\BuyerUser;
 use App\Models\Supplier;
 use App\Models\SupplierCertification;
+use App\Services\StorageMgrService;
 use DB;
 use Illuminate\Http\Request;
 use Throwable;
@@ -112,9 +117,19 @@ class SupplierController extends Controller {
           $supplier_certification = new SupplierCertification;
         }
 
+        $certification_doc = $request->file('certification_doc_' . $key);
+
         $supplier_certification->is_active = true;
         $supplier_certification->supplier_id = $item->id;
         $supplier_certification->certification_id = $supplier_certification_data->certification_id;
+
+        $supplier_certification->certification_path = StorageMgrService::syncPath(
+          $supplier_certification->certification_path,
+          $certification_doc instanceof UploadedFile ? $certification_doc : null,
+          'SupplierCertification'
+        );
+
+
         $supplier_certification->save();
       }
 
@@ -147,6 +162,91 @@ class SupplierController extends Controller {
         'has_available_hours' => true,
       ]);
     } catch (Throwable $err) {
+      return $this->rsp(500, null, $err);
+    }
+  }
+
+  public function status(Request $request) {
+    try {
+      $supplier_user = SupplierUser::getFirstByUser($request->user()->id);
+      $item = Supplier::find($supplier_user->supplier_id,['is_reviewed','reviewed_comment']);
+
+      if (is_null($item)) {
+        return $this->rsp(404, 'Registro no encontrado');
+      }
+
+      return $this->rsp(200, 'Estado del perfil', [
+        'item' => $item,
+      ]);
+
+    } catch (Throwable $err) {
+      return $this->rsp(500, null, $err);
+    }
+  }
+
+  //COMPANY
+
+  public function CompanyIndex(Request $request) {
+    try {
+      return $this->rsp(200, 'Registros retornados correctamente', [
+        'items' => Supplier::getNotReviewItems($request),
+      ]);
+    } catch (Throwable $err) {
+      return $this->rsp(500, null, $err);
+    }
+  }
+
+  public function CompanyShow(Request $request) {
+    try {
+      $item = Supplier::getNotReviewItem($request);
+
+      if (is_null($item)) {
+        return $this->rsp(404, 'Registro no encontrado');
+      }
+
+      return $this->rsp(200, 'Registro retornado correctamente', [
+        'item' => $item,
+      ]);
+    } catch (Throwable $err) {
+      return $this->rsp(500, null, $err);
+    }
+  }
+
+  public function validSupplier(Request $request) {
+    DB::beginTransaction();
+
+    try {
+      $item = Supplier::find($request->supplier_id);
+      if (is_null($item)) {
+        return $this->rsp(404, 'Registro no encontrado');
+      }
+      $item->is_reviewed = $request->is_reviewed;
+      $item->reviewed_by_id = $request->user()->id;
+      $item->reviewed_at = date('Y-m-d H:i:s');
+      $item->reviewed_comment = $request->reviewed_comment;
+      $item->save();
+
+      DB::afterCommit(function () use ($item) {
+        $supplier_user = SupplierUser::where('supplier_id',$item->id)->first();
+        $user = User::find($supplier_user->user_id);
+        EmailService::ProfileStatus(
+          [$user->email],
+          [
+            'is_reviewed' => $item->is_reviewed,
+            'reviewed_comment' => $item->reviewed_comment,
+          ]
+        );
+      });
+
+      DB::commit();
+
+      return $this->rsp(
+        200,
+        'Registro validado correctamente',
+        null
+      );
+    } catch (Throwable $err) {
+      DB::rollBack();
       return $this->rsp(500, null, $err);
     }
   }

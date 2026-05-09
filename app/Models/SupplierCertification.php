@@ -3,8 +3,13 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class SupplierCertification extends Model {
+  
+  public function certification(): BelongsTo {
+    return $this->belongsTo(Certification::class, 'certification_id');
+  }
   public $timestamps = false;
 
   public static function deactivateBySupplier(int $supplier_id): int {

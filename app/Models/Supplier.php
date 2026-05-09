@@ -179,7 +179,7 @@ class Supplier extends Model {
     $item->with([
       'created_by:id,email',
       'updated_by:id,email',
-      'supplier_certifications:id,supplier_id,is_active,certification_id',
+      'supplier_certifications:id,supplier_id,is_active,certification_id,certification_path',
       'municipality:id,name,state_id',
       'municipality.state:id,name',
     ]);
@@ -203,6 +203,13 @@ class Supplier extends Model {
 
     $item->positive_opinion_b64 = StorageMgrService::getBase64($item->positive_opinion_path, 'Supplier');
     $item->positive_opinion_doc = null;
+
+    $item->supplier_certifications->map(function ($supplier_certification) {
+      $supplier_certification->certification_b64 = StorageMgrService::getBase64($supplier_certification->certification_path, 'SupplierCertification');
+      $supplier_certification->certification_doc = null;
+
+      return $supplier_certification;
+    });
 
     return $item;
   }
@@ -233,6 +240,10 @@ class Supplier extends Model {
 
     $item->fiscal_regime_id = Input::toId(data_get($data, 'fiscal_regime_id'));
     $item->cfdi_usage_id = Input::toId(data_get($data, 'cfdi_usage_id'));
+
+    $item->is_reviewed = null;
+    $item->reviewed_by_id = null;
+    $item->reviewed_at = null;
 
     $item->logo_path = StorageMgrService::syncPath(
       $item->logo_path,
@@ -318,6 +329,7 @@ class Supplier extends Model {
       })
       ->where('buyer_offer_areas.is_active', true)
       ->where('buyers.is_active', true)
+      ->where('buyers.is_reviewed', true)
       ->where('event_areas.is_active', true)
       ->where('event_areas.event_id', $event_id)
       ->whereNotExists(function ($query) {
@@ -438,5 +450,85 @@ class Supplier extends Model {
       'has_available_hours' => true,
       'items' => $mapped,
     ];
+  }
+
+
+  //COMPANY
+  
+
+  public static function getNotReviewItems(Request $request) {
+    $items = self::query();
+
+    $items->select(['suppliers.*']);
+
+    $items->with([
+      'created_by:id,email',
+      'updated_by:id,email',
+      'municipality:id,name,state_id',
+      'municipality.state:id,name',
+    ]);
+
+    $items->join('event_suppliers', 'event_suppliers.supplier_id', 'suppliers.id');
+
+    $items->where('suppliers.is_active', '=', true)->
+      where('event_suppliers.event_id', '=', $request->event_id);
+
+    $items->orderBy('is_reviewed')->
+      orderBy('name', 'asc');
+
+    $items = $items->get();
+
+    if (is_null($items)) {
+      return null;
+    }
+
+    return $items;
+  }
+  
+
+  public static function getNotReviewItem(Request $request) {
+    $item = self::query();
+
+    $item->select(['suppliers.*']);
+
+    $item->with([
+      'created_by:id,email',
+      'updated_by:id,email',
+      'supplier_certifications:id,supplier_id,is_active,certification_id,certification_path',
+      'supplier_certifications.certification:id,name',
+      'municipality:id,name,state_id',
+      'municipality.state:id,name',
+    ]);
+
+    $item->join('event_suppliers', 'event_suppliers.supplier_id', 'suppliers.id');
+
+    $item->where('suppliers.is_active', '=', true)->
+      where('event_suppliers.event_id', '=', $request->event_id)->
+      where('suppliers.id', '=', $request->supplier_id);
+
+    $item = $item->first();
+
+    if (is_null($item)) {
+      return null;
+    }
+
+
+    $item->logo_b64 = StorageMgrService::getBase64($item->logo_path, 'Supplier');
+    $item->logo_doc = null;
+
+    $item->tax_certificate_b64 = StorageMgrService::getBase64($item->tax_certificate_path, 'Supplier');
+    $item->tax_certificate_doc = null;
+
+    $item->positive_opinion_b64 = StorageMgrService::getBase64($item->positive_opinion_path, 'Supplier');
+    $item->positive_opinion_doc = null;
+
+    $item->supplier_certifications->map(function ($supplier_certification) {
+      $supplier_certification->certification_b64 = StorageMgrService::getBase64($supplier_certification->certification_path, 'SupplierCertification');
+      $supplier_certification->certification_doc = null;
+
+      return $supplier_certification;
+    });
+
+    return $item;
   }
 }

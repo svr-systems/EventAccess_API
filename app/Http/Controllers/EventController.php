@@ -356,9 +356,9 @@ class EventController extends Controller {
         return $this->rsp(404, 'Registro no encontrado');
       }
 
-      return $this->rsp(200, 'Registro retornado correctamente', [
-        'has_buyers' => $item->has_buyers,
-      ]);
+      return $this->rsp(200, 'Registro retornado correctamente',
+        $item
+      );
     } catch (Throwable $err) {
       return $this->rsp(500, null, $err);
     }

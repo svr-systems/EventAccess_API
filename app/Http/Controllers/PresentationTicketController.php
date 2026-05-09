@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Concerns\HasActiveToggle;
 use App\Models\PresentationTicket;
 use DB;
+use Event;
 use Illuminate\Http\Request;
 use Throwable;
 
@@ -73,8 +74,6 @@ class PresentationTicketController extends Controller {
 
       if ($store_mode) {
         $item = new PresentationTicket();
-        $item->created_by_id = $request->user()->id;
-        $item->updated_by_id = $request->user()->id;
       } else {
         $item = PresentationTicket::find((int) $id);
 
@@ -82,13 +81,21 @@ class PresentationTicketController extends Controller {
           DB::rollBack();
           return $this->rsp(404, 'Registro no encontrado');
         }
-
-        $item->updated_by_id = $request->user()->id;
       }
 
       $payload = $request->all();
 
       $item = PresentationTicket::saveData($item, $payload);
+
+      // Ajuste de fechas para mostrar el evento al público
+      $range = PresentationTicket::where('event_id', $item->event_id)
+        ->selectRaw('MIN(start_sale) as sale_start_at, MAX(end_sale) as sale_end_at')
+        ->first();
+
+      Event::where('id', $item->event_id)->update([
+        'sale_start_at' => $range->sale_start_at,
+        'sale_end_at' => $range->sale_end_at,
+      ]);
 
       DB::commit();
 

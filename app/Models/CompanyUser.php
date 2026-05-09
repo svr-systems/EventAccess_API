@@ -59,7 +59,7 @@ class CompanyUser extends Model {
    */
   public static function validData(array $data) {
     $rules = [
-      'company_id' => ['required', 'numeric'],
+      // 'company_id' => ['required', 'numeric'],
     ];
 
     $msgs = [

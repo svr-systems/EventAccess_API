@@ -121,6 +121,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/offer_areas/suppliers', [BuyerController::class, 'getMatchedSupplierAreas']);
 
         Route::get('/profile', [BuyerController::class, 'show']);
+        Route::get('/profile/status', [BuyerController::class, 'status']);
         Route::post('/profile', [BuyerController::class, 'store']);
 
         Route::apiResource('/offer_areas', BuyerOfferAreaController::class);
@@ -189,6 +190,7 @@ Route::prefix('v1')->group(function () {
 
 
         Route::get('/profile', [SupplierController::class, 'show']);
+        Route::get('/profile/status', [SupplierController::class, 'status']);
         Route::post('/profile', [SupplierController::class, 'store']);
         // Route::patch('/supplier/{id}/activate', [SupplierController::class, 'activate']);
 
@@ -223,6 +225,14 @@ Route::prefix('v1')->group(function () {
   Route::group(['middleware' => 'auth:api'], function () {
     Route::middleware([EnsureUserIsCompany::class])->group(function () {
       Route::prefix('company')->group(function () {
+
+        Route::get('/suppliers/valid/pending', [SupplierController::class, 'CompanyIndex']);
+        Route::get('/suppliers/valid/supplier', [SupplierController::class, 'CompanyShow']);
+        Route::patch('/suppliers/valid/supplier', [SupplierController::class, 'validSupplier']);
+
+        Route::get('/buyers/valid/pending', [BuyerController::class, 'CompanyIndex']);
+        Route::get('/buyers/valid/buyer', [BuyerController::class, 'CompanyShow']);
+        Route::patch('/buyers/valid', [BuyerController::class, 'validBuyer']);
 
         Route::patch('/events/meeting_windows/activate', [EventController::class, 'meetingActivate']);
         Route::get('/events/meeting_windows/status', [EventController::class, 'getMeetingStatus']);
@@ -259,7 +269,13 @@ Route::prefix('v1')->group(function () {
         Route::patch('/events/{id}/address', [EventController::class, 'setAddress']);
         Route::patch('/events/{id}/activate', [EventController::class, 'activate']);
 
-        Route::apiResource('/users', CompanyUserController::class);
+        
+        // Route::apiResource('/users', CompanyUserController::class);
+        Route::get('/users', [CompanyUserController::class, 'index']);
+        Route::get('/users/{id}', [CompanyUserController::class, 'show']);
+        Route::post('/users', [CompanyUserController::class, 'store']);
+        Route::post('/users/{id}', [CompanyUserController::class, 'update']);
+        Route::delete('/users/{id}', [CompanyUserController::class, 'destroy']);
         Route::patch('/users/{id}/activate', [CompanyUserController::class, 'activate']);
 
         Route::get('companies', [CompanyController::class, 'index']);
@@ -279,7 +295,12 @@ Route::prefix('v1')->group(function () {
       Route::apiResource('certifications', CertificationController::class);
       Route::patch('certifications/{id}/activate', [CertificationController::class, 'activate']);
 
-      Route::apiResource('companies/users', CompanyUserController::class);
+      // Route::apiResource('companies/users', CompanyUserController::class);
+        Route::get('companies/users', [CompanyUserController::class, 'index']);
+        Route::get('companies/users/{id}', [CompanyUserController::class, 'show']);
+        Route::post('companies/users', [CompanyUserController::class, 'store']);
+        Route::post('companies/users/{id}', [CompanyUserController::class, 'update']);
+        Route::delete('companies/users/{id}', [CompanyUserController::class, 'destroy']);
       Route::patch('companies/users/{id}/activate', [CompanyUserController::class, 'activate']);
 
       Route::apiResource('companies', CompanyController::class);

@@ -92,6 +92,7 @@ class EventArea extends Model {
 
     $items->select([
       'event_areas.id',
+      'event_areas.is_active',
       'event_areas.event_id',
       'event_areas.name'
     ]);

@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void {
         Schema::table('events', function (Blueprint $table) {
-            $table->unsignedInteger('meeting_time')->nullable()->after('has_buyers');
+            $table->unsignedInteger('meeting_time')->nullable()->default(15)->after('has_buyers');
         });
     }
 

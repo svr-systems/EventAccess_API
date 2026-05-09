@@ -80,7 +80,7 @@ class MeetingController extends Controller {
       $payload['buyer_id'] = $buyer_user?->buyer_id;
 
 
-      $event = Event::getItem($payload['event_id'], null);
+      $event = Event::find($payload['event_id']);
       $payload['meeting_time'] = $event->meeting_time;
 
       $payload['end_time'] = Meeting::calcEndTime(
@@ -105,10 +105,6 @@ class MeetingController extends Controller {
           return $this->rsp(404, 'Registro no encontrado');
         }
       }
-
-      $event = Event::getItem($payload['event_id'], null);
-
-      $payload['meeting_time'] = $event->meeting_time;
 
       $item = Meeting::saveData($item, $payload);
 

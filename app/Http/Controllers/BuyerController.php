@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\HasActiveToggle;
 use App\Models\Buyer;
+use App\Models\BuyerUser;
+use App\Models\User;
+use App\Services\EmailService;
 use DB;
 use Illuminate\Http\Request;
 use Throwable;
@@ -114,6 +117,92 @@ class BuyerController extends Controller {
         'has_available_hours' => true,
       ]);
     } catch (Throwable $err) {
+      return $this->rsp(500, null, $err);
+    }
+  }
+
+  public function status(Request $request) {
+    try {
+      $buyer_user = BuyerUser::getFirstByUser($request->user()->id);
+      $item = Buyer::find($buyer_user->buyer_id, ['is_reviewed', 'reviewed_comment']);
+
+      if (is_null($item)) {
+        return $this->rsp(404, 'Registro no encontrado');
+      }
+
+      return $this->rsp(200, 'Estado del perfil', [
+        'item' => $item,
+      ]);
+
+    } catch (Throwable $err) {
+      return $this->rsp(500, null, $err);
+    }
+  }
+
+  //COMPANY
+
+  public function CompanyIndex(Request $request) {
+    try {
+      return $this->rsp(200, 'Registros retornados correctamente', [
+        'items' => Buyer::getNotReviewItems($request),
+      ]);
+    } catch (Throwable $err) {
+      return $this->rsp(500, null, $err);
+    }
+  }
+
+  public function CompanyShow(Request $request) {
+    try {
+      $item = Buyer::getNotReviewItem($request);
+
+      if (is_null($item)) {
+        return $this->rsp(404, 'Registro no encontrado');
+      }
+
+      return $this->rsp(200, 'Registro retornado correctamente', [
+        'item' => $item,
+      ]);
+    } catch (Throwable $err) {
+      return $this->rsp(500, null, $err);
+    }
+  }
+
+
+  public function validBuyer(Request $request) {
+    DB::beginTransaction();
+
+    try {
+      $item = Buyer::find($request->buyer_id);
+      if (is_null($item)) {
+        return $this->rsp(404, 'Registro no encontrado');
+      }
+      $item->is_reviewed = $request->is_reviewed;
+      $item->reviewed_by_id = $request->user()->id;
+      $item->reviewed_at = date('Y-m-d H:i:s');
+      $item->reviewed_comment = $request->reviewed_comment;
+      $item->save();
+
+      DB::afterCommit(function () use ($item) {
+        $buyer_user = BuyerUser::where('buyer_id',$item->id)->first();
+        $user = User::find($buyer_user->user_id);
+        EmailService::ProfileStatus(
+          [$user->email],
+          [
+            'is_reviewed' => $item->is_reviewed,
+            'reviewed_comment' => $item->reviewed_comment,
+          ]
+        );
+      });
+
+      DB::commit();
+
+      return $this->rsp(
+        200,
+        'Registro validado correctamente',
+        null
+      );
+    } catch (Throwable $err) {
+      DB::rollBack();
       return $this->rsp(500, null, $err);
     }
   }

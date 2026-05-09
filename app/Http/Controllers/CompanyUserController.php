@@ -68,10 +68,10 @@ class CompanyUserController extends Controller {
       // $user = json_encode($request->user);
       // $user_data = json_decode($user);
       $user_data = json_decode($request->user);
-      if($request->user()->role_id === 1 || $request->user()->role_id === 2){
+      if ($request->user()->role_id === 1 || $request->user()->role_id === 2) {
         $user_data->role_id = 3;
       }
-      
+
       $email = Input::toLower($user_data->email);
 
       $valid = User::validEmail(['email' => $email], $user_data->id);
@@ -79,12 +79,12 @@ class CompanyUserController extends Controller {
         DB::rollBack();
         return $this->rsp(422, $valid->errors()->first(), null, $valid->errors()->toArray());
       }
-      
-      $valid = User::validData((array) $user_data, '3,4');
-      if ($valid->fails()) {
-        DB::rollBack();
-        return $this->rsp(422, $valid->errors()->first(), null, $valid->errors()->toArray());
-      }
+
+      // $valid = User::validData((array) $user_data, '3,4');
+      // if ($valid->fails()) {
+      //   DB::rollBack();
+      //   return $this->rsp(422, $valid->errors()->first(), null, $valid->errors()->toArray());
+      // }
 
       $store_mode = is_null($id);
 
@@ -121,7 +121,12 @@ class CompanyUserController extends Controller {
       $user = User::saveData($user, $payload);
 
       $payload = [];
-      $payload['company_id'] = $request->company_id;
+      if ($request->company_id) {
+        $payload['company_id'] = $request->company_id;
+      } else {
+        $company_user = CompanyUser::getFirstByUser($request->user()->id);
+        $payload['company_id'] = $company_user->company_id;
+      }
       $payload['user_id'] = $user->id;
       $item = CompanyUser::saveData($item, $payload);
 

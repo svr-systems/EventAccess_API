@@ -75,6 +75,14 @@ class EmailService
   {
     self::send($emails, $data, 'Cancelación de solicitud de reunión', 'MeetingRequestRejected');
   }
+  public static function ProfileStatus(array $emails, array $data): void
+  {
+    $subjet = "Perfil rechazado";
+    if($data['is_reviewed']){
+      $subjet = "Perfil aprobado";
+    }
+    self::send($emails, $data, $subjet, 'ProfileStatus');
+  }
 
   /**
    * ===========================================

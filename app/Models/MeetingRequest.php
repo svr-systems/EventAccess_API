@@ -311,8 +311,10 @@ class MeetingRequest extends Model {
       'meeting_requests.event_area_id',
       'meeting_requests.buyer_id',
       'meeting_requests.buyer_user_id',
+      'meeting_requests.buyer_offer_area_id',
       'meeting_requests.supplier_id',
       'meeting_requests.supplier_user_id',
+      'meeting_requests.supplier_event_area_id',
       'meeting_requests.meeting_id',
       'meeting_requests.is_approved',
       'meeting_requests.created_at',
@@ -322,6 +324,7 @@ class MeetingRequest extends Model {
       'supplier:id,name,logo_path,phone,website_url,description,address,municipality_id,zip,fiscal_code,fiscal_name',
       'supplier_user:id,user_id',
       'supplier_user.user:id,name,paternal_surname,maternal_surname',
+      'event_area:id,name',
     ]);
 
     $items->where('meeting_requests.is_active', (bool) ((int) $is_active))

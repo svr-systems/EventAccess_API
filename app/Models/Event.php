@@ -276,16 +276,57 @@ class Event extends Model {
 
   public static function getMeetingStatus(Request $request = null) {
     $company_user = CompanyUser::getFirstByUser($request->user()->id);
+
     $item = self::query();
 
-    $item->select(['events.has_buyers']);
+    $item->select([
+      'events.has_buyers',
+    ]);
 
-    $item->whereKey((int) $request->event_id)->
-      where('company_id', $company_user->company_id);
+    $item->selectSub(function ($query) {
+      $query->from('event_suppliers')
+        ->selectRaw('COUNT(*)')
+        ->whereColumn('event_suppliers.event_id', 'events.id')
+        ->where('event_suppliers.is_active', true);
+    }, 'suppliers');
 
-    $item = $item->first();
+    $item->selectSub(function ($query) {
+      $query->from('event_suppliers')
+        ->join('suppliers', 'suppliers.id', '=', 'event_suppliers.supplier_id')
+        ->selectRaw('COUNT(*)')
+        ->whereColumn('event_suppliers.event_id', 'events.id')
+        ->where('event_suppliers.is_active', true)
+        ->whereNull('suppliers.is_reviewed');
+    }, 'supplier_pending');
 
-    return $item;
+    $item->selectSub(function ($query) {
+      $query->from('event_buyers')
+        ->selectRaw('COUNT(*)')
+        ->whereColumn('event_buyers.event_id', 'events.id')
+        ->where('event_buyers.is_active', true);
+    }, 'buyers');
+
+    $item->selectSub(function ($query) {
+      $query->from('event_buyers')
+        ->join('buyers', 'buyers.id', '=', 'event_buyers.buyer_id')
+        ->selectRaw('COUNT(*)')
+        ->whereColumn('event_buyers.event_id', 'events.id')
+        ->where('event_buyers.is_active', true)
+        ->whereNull('buyers.is_reviewed');
+    }, 'buyer_pending');
+
+    $item->selectSub(function ($query) {
+      $query->from('meetings')
+        ->selectRaw('COUNT(*)')
+        ->whereColumn('meetings.event_id', 'events.id')
+        ->where('meetings.is_active', true)
+        ->where('meetings.is_confirmed', true);
+    }, 'meetings');
+
+    $item->whereKey((int) $request->event_id)
+      ->where('company_id', $company_user->company_id);
+
+    return $item->first();
   }
 
   public static function getMeetingTime(Request $request = null) {
@@ -525,7 +566,7 @@ class Event extends Model {
 
     $item->presentation_date = [
       'date' => self::formatPresentationDateText($dates),
-      'time' => self::formatPresentationTimeText($dates), 
+      'time' => self::formatPresentationTimeText($dates),
       'total' => $dates->count(),
     ];
 

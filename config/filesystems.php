@@ -82,6 +82,13 @@ return [
       'visibility' => 'public',
     ],
 
+    'SupplierCertification' => [
+      'driver' => 'local',
+      'root' => storage_path('app/private/SupplierCertification'),
+      'url' => env('APP_URL') . '/storage',
+      'visibility' => 'public',
+    ],
+
     'Buyer' => [
       'driver' => 'local',
       'root' => storage_path('app/private/Buyer'),
