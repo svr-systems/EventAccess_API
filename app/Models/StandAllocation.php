@@ -23,6 +23,7 @@ class StandAllocation extends Model {
     'is_active' => 'boolean',
     'created_at' => 'datetime:Y-m-d H:i:s',
     'updated_at' => 'datetime:Y-m-d H:i:s',
+    'is_paid' => 'boolean',
   ];
 
   /**
@@ -213,6 +214,8 @@ class StandAllocation extends Model {
    */
   public static function getCompanyItems(Request $request) {
 
+    $supplier_user = SupplierUser::getFirstByUser($request->user()->id);
+
     $items = self::query();
 
     $items->select([
@@ -226,6 +229,7 @@ class StandAllocation extends Model {
     ]);
 
     $items->where('stand_allocations.is_active', 1)->
+      where('stand_allocations.supplier_id', $supplier_user->supplier_id)->
       where('stand_allocations.event_id', $request->event_id);
 
     return $items->get();

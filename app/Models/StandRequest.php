@@ -42,12 +42,16 @@ class StandRequest extends Model {
     return $this->belongsTo(User::class, 'updated_by_id');
   }
 
-  public function offer(): BelongsTo {
-    return $this->belongsTo(Offer::class, 'offer_id');
+  public function supplier(): BelongsTo {
+    return $this->belongsTo(Supplier::class, 'supplier_id');
   }
 
-  public function stand_type_id(): BelongsTo {
-    return $this->belongsTo(StandType::class, 'stand_type_id');
+  public function event_stand_config(): BelongsTo {
+    return $this->belongsTo(EventStandConfig::class, 'event_stand_config_id');
+  }
+
+  public function stand_allocation() {
+    return $this->hasOne(StandAllocation::class, 'stand_request_id');
   }
 
   /**
@@ -67,6 +71,7 @@ class StandRequest extends Model {
   public static function validData(array $data) {
     $rules = [
       'event_id' => ['required', 'integer', 'exists:events,id'],
+      'justification' => ['required'],
 
       'event_stand_config_id' => [
         'required',
@@ -75,9 +80,8 @@ class StandRequest extends Model {
         function ($attribute, $value, $fail) use ($data) {
 
           $exists = DB::table('event_stand_configs')
-            ->join('stand_types', 'stand_types.id', '=', 'event_stand_configs.stand_type_id')
             ->where('event_stand_configs.id', $value)
-            ->where('stand_types.event_id', $data['event_id'] ?? null)
+            ->where('event_stand_configs.event_id', $data['event_id'] ?? null)
             ->where('event_stand_configs.is_active', true)
             ->exists();
 
@@ -109,60 +113,6 @@ class StandRequest extends Model {
           }
         }
       ],
-
-      'offer_id' => [
-        'required',
-        'integer',
-        'exists:offers,id',
-        function ($attribute, $value, $fail) use ($data) {
-
-          $offer = DB::table('offers')
-            ->where('id', $value)
-            ->where('is_active', true)
-            ->first();
-
-          if (!$offer) {
-            $fail('La oferta seleccionada no existe o no está activa.');
-            return;
-          }
-
-          $valid = DB::table('stand_types')
-            ->where('id', $offer->stand_type_id)
-            ->where('event_id', $data['event_id'] ?? null)
-            ->exists();
-
-          if (!$valid) {
-            $fail('La oferta no corresponde al evento seleccionado.');
-          }
-        }
-      ],
-
-      'supplier_id' => [
-        'required',
-        'integer',
-        'exists:suppliers,id',
-        function ($attribute, $value, $fail) use ($data) {
-
-          $exists = DB::table('event_suppliers')
-            ->where('supplier_id', $value)
-            ->where('event_id', $data['event_id'] ?? null)
-            ->where('is_active', true)
-            ->exists();
-
-          if (!$exists) {
-            $fail('El proveedor no está registrado o activo en este evento.');
-            return;
-          }
-
-          $offer = DB::table('offers')
-            ->where('id', $data['offer_id'] ?? null)
-            ->first();
-
-          if ($offer && $offer->supplier_id != $value) {
-            $fail('El proveedor no corresponde a la oferta seleccionada.');
-          }
-        }
-      ],
     ];
 
     $msgs = [
@@ -170,17 +120,11 @@ class StandRequest extends Model {
       'event_id.integer' => 'El evento debe ser un identificador válido.',
       'event_id.exists' => 'El evento seleccionado no existe.',
 
+      'justification.required' => 'La justificación es obligatoria.',
+
       'event_stand_config_id.required' => 'La configuración del stand es obligatoria.',
       'event_stand_config_id.integer' => 'La configuración del stand debe ser un identificador válido.',
       'event_stand_config_id.exists' => 'La configuración del stand no existe.',
-
-      'offer_id.required' => 'La oferta es obligatoria.',
-      'offer_id.integer' => 'La oferta debe ser un identificador válido.',
-      'offer_id.exists' => 'La oferta seleccionada no existe.',
-
-      'supplier_id.required' => 'El proveedor es obligatorio.',
-      'supplier_id.integer' => 'El proveedor debe ser un identificador válido.',
-      'supplier_id.exists' => 'El proveedor seleccionado no existe.',
     ];
 
     return Validator::make($data, $rules, $msgs);
@@ -216,15 +160,32 @@ class StandRequest extends Model {
       'stand_requests.id',
       'stand_requests.is_active',
       'stand_requests.event_id',
+      'stand_requests.supplier_id',
       'stand_requests.event_stand_config_id',
-      'stand_requests.offer_id',
+      'stand_requests.justification',
       'stand_requests.notes',
       'stand_requests.is_approved',
     ]);
 
-    $items->where('stand_requests.is_active', (bool) ((int) $is_active))->
-      where('stand_requests.event_id', $request->event_id)->
-      where('stand_requests.supplier_id', $request->supplier_id);
+    $items->with([
+      'event_stand_config:id,name',
+      'supplier:id,name'
+    ]);
+
+    $items->with([
+      'stand_allocation' => function ($query) {
+        $query->select([
+          'id',
+          'stand_request_id',
+          'is_paid',
+        ])->where('is_paid', true);
+      },
+    ]);
+
+    $items->where('stand_requests.is_active', (bool) ((int) $is_active))
+      ->where('stand_requests.event_id', $request->event_id)
+      // ->where('stand_requests.supplier_id', $request->supplier_id)
+      ->where('stand_requests.created_by_id',$request->user()->id);
 
     return $items->get();
   }
@@ -237,9 +198,19 @@ class StandRequest extends Model {
     $item->with([
       'created_by:id,email,name,paternal_surname,maternal_surname',
       'updated_by:id,email,name,paternal_surname,maternal_surname',
+      'event_stand_config:*',
+      'supplier:id,name',
+      'stand_allocation' => function ($query) {
+        $query->select([
+          'id',
+          'stand_request_id',
+          'is_paid',
+        ])->where('is_paid', true);
+      },
     ]);
 
-    $item->whereKey((int) $id);
+    $item->whereKey((int) $id)
+      ->where('stand_requests.created_by_id',$request->user()->id);
 
     $item = $item->first();
 
@@ -250,6 +221,42 @@ class StandRequest extends Model {
     return $item;
   }
 
+  public static function getApprovedPendingAllocations(Request $request) {
+  $is_active = $request->query('is_active', 1);
+
+  $items = self::query();
+
+  $items->select([
+    'stand_requests.id',
+    'stand_requests.is_active',
+    'stand_requests.event_id',
+    'stand_requests.supplier_id',
+    'stand_requests.event_stand_config_id',
+    'stand_requests.justification',
+    'stand_requests.notes',
+    'stand_requests.is_approved',
+  ]);
+
+  $items->with([
+    'stand_allocation' => function ($query) {
+      $query->select([
+        'id',
+        'stand_request_id',
+        'is_paid',
+      ]);
+    },
+  ]);
+
+  $items->where('stand_requests.is_active', (bool) ((int) $is_active))
+    ->where('stand_requests.event_id', $request->event_id)
+    ->where('stand_requests.is_approved', true)
+    ->whereDoesntHave('stand_allocation', function ($query) {
+      $query->where('is_paid', true);
+    });
+
+  return $items->get();
+}
+
   /**
    * ===========================================
    * GUARDADO DE DATOS
@@ -259,8 +266,8 @@ class StandRequest extends Model {
 
     $item->event_id = Input::toId(data_get($data, 'event_id'));
     $item->event_stand_config_id = Input::toId(data_get($data, 'event_stand_config_id'));
-    $item->offer_id = Input::toId(data_get($data, 'offer_id'));
     $item->supplier_id = Input::toId(data_get($data, 'supplier_id'));
+    $item->justification = Input::toText(data_get($data, 'justification'));
 
     $item->save();
 
@@ -282,14 +289,15 @@ class StandRequest extends Model {
       'stand_requests.is_active',
       'stand_requests.event_id',
       'stand_requests.event_stand_config_id',
-      'stand_requests.offer_id',
+      'stand_requests.supplier_id',
+      'stand_requests.justification',
       'stand_requests.notes',
       'stand_requests.is_approved',
     ]);
 
     $items->with([
-      'offer:id,description,stand_type_id',
-      'offer.stand_type:id,name'
+      'event_stand_config:id,name',
+      'supplier:id,name'
     ]);
 
     $items->where('stand_requests.is_active', (bool) ((int) $is_active))->
@@ -307,11 +315,12 @@ class StandRequest extends Model {
     $item->with([
       'created_by:id,email,name,paternal_surname,maternal_surname',
       'updated_by:id,email,name,paternal_surname,maternal_surname',
-      'offer:id,description,stand_type_id',
-      'offer.stand_type:id,name'
+      'event_stand_config:*',
+      'supplier:id,name'
     ]);
 
-    $item->whereKey((int) $id);
+    $item->whereKey((int) $id)
+      ->where('is_approved',$request->is_approved);
 
     $item = $item->first();
 

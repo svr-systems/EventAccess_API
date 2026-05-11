@@ -174,18 +174,21 @@ Route::prefix('v1')->group(function () {
         Route::get('/stand_allocations', [StandAllocationController::class, 'index']);
         Route::get('/stand_allocations/{id}', [StandAllocationController::class, 'show']);
 
-        // Route::apiResource('/stand_allocations', StandAllocationController::class);
-        // Route::patch('/stand_allocations/{id}/activate', [StandAllocationController::class, 'activate']);
 
         Route::apiResource('/stand_requests', StandRequestController::class);
         Route::patch('/stand_requests/{id}/activate', [StandRequestController::class, 'activate']);
 
         Route::get('/event_stand_configs', [EventStandConfigController::class, 'supplierIndex']);
 
-        Route::apiResource('/offers', OfferController::class);
-        Route::patch('/offers/{id}/activate', [OfferController::class, 'activate']);
+        // Route::apiResource('/offers', OfferController::class);
+        // Route::patch('/offers/{id}/activate', [OfferController::class, 'activate']);
 
         Route::apiResource('/users', SupplierUserController::class);
+        Route::get('/users/', [SupplierUserController::class, 'index']);
+        Route::get('/users/{id}', [SupplierUserController::class, 'show']);
+        Route::post('/users/', [SupplierUserController::class, 'store']);
+        Route::post('/users/{id}', [SupplierUserController::class, 'update']);
+        Route::delete('/users/{id}', [SupplierUserController::class, 'destroy']);
         Route::patch('/users/{id}/activate', [SupplierUserController::class, 'activate']);
 
 

@@ -90,12 +90,6 @@ class SupplierUserController extends Controller {
 
       $store_mode = is_null($id);
 
-      $valid = SupplierUser::validData($request->all());
-      if ($valid->fails()) {
-        DB::rollBack();
-        return $this->rsp(422, $valid->errors()->first(), null, $valid->errors()->toArray());
-      }
-
       $email_current = null;
 
       if ($store_mode) {
@@ -122,8 +116,10 @@ class SupplierUserController extends Controller {
 
       $user = User::saveData($user, $payload);
 
+      $supplier_user = SupplierUser::getFirstByUser($request->user()->id);
+
       $payload = [];
-      $payload['supplier_id'] = $request->supplier_id;
+      $payload['supplier_id'] = $supplier_user->supplier_id;
       $payload['user_id'] = $user->id;
       $item = SupplierUser::saveData($item, $payload);
 

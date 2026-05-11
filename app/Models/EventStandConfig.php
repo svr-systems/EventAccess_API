@@ -180,11 +180,6 @@ class EventStandConfig extends Model {
    */
 
   public static function getSuplierItems(Request $request) {
-    $offer = Offer::find($request->offer_id);
-
-    if (!$offer) {
-      return null;
-    }
 
     $occupiedSubquery = DB::table('stand_requests')
       ->select([
@@ -203,7 +198,8 @@ class EventStandConfig extends Model {
     $items->select([
       'event_stand_configs.id',
       'event_stand_configs.is_active',
-      'event_stand_configs.stand_type_id',
+      'event_stand_configs.event_id',
+      'event_stand_configs.name',
       'event_stand_configs.capacity',
       'event_stand_configs.price',
       'event_stand_configs.size_length',
@@ -216,14 +212,13 @@ class EventStandConfig extends Model {
       DB::raw('(event_stand_configs.capacity - COALESCE(sr.occupied, 0)) as available'),
     ]);
 
-    $items->join('stand_types', 'stand_types.id', '=', 'event_stand_configs.stand_type_id');
 
     $items->leftJoinSub($occupiedSubquery, 'sr', function ($join) {
       $join->on('sr.event_stand_config_id', '=', 'event_stand_configs.id');
     });
 
     $items->where('event_stand_configs.is_active', true)
-      ->where('event_stand_configs.stand_type_id', $offer->stand_type_id)
+      ->where('event_stand_configs.event_id', $request->event_id)
       ->whereRaw('event_stand_configs.capacity > COALESCE(sr.occupied, 0)');
 
     return $items->get();

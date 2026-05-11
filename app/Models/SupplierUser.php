@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\StorageMgrService;
 use App\Support\DisplayId;
 use App\Support\Input;
 use Illuminate\Database\Eloquent\Model;
@@ -113,6 +114,9 @@ class SupplierUser extends Model {
     }
 
     $item->user = User::getItem($item->user_id);
+
+    $item->user->avatar_b64 = StorageMgrService::getBase64($item->user->avatar_path, 'User');
+    $item->user->avatar_doc = null;
 
     return $item;
   }

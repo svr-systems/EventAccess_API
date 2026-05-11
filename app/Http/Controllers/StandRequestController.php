@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Concerns\HasActiveToggle;
 use App\Models\EventStandConfig;
 use App\Models\StandRequest;
+use App\Models\SupplierUser;
 use DB;
 use Illuminate\Http\Request;
 use Throwable;
@@ -65,7 +66,12 @@ class StandRequestController extends Controller {
     try {
       $store_mode = is_null($id);
 
-      $valid = StandRequest::validData($request->all());
+
+      $supplier_user = SupplierUser::getFirstByUser($request->user()->id);
+      $payload = $request->all();
+      $payload['supplier_id'] = $supplier_user->supplier_id;
+
+      $valid = StandRequest::validData($payload);
       if ($valid->fails()) {
         DB::rollBack();
         return $this->rsp(422, $valid->errors()->first(), null, $valid->errors()->toArray());
@@ -82,7 +88,7 @@ class StandRequestController extends Controller {
         }
       }
 
-      $payload = $request->all();
+
 
       // Solo validar cupo cuando se crea
       // o cuando en edición cambia la configuración del stand
