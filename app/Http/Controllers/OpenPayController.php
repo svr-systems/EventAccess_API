@@ -131,7 +131,7 @@ class OpenPayController extends Controller {
 
       $status = ($charge->status === "completed") ? true : false;
 
-      $stand_request = StandRequest::find($charge->description);
+      $stand_request = StandRequest::find(explode('SR-', $charge->description)[1]);
 
       $stand_allocation = new StandAllocation;
       $stand_allocation->stand_request_id = $stand_request->id;
@@ -173,7 +173,7 @@ class OpenPayController extends Controller {
       $transaction_data->external_id = $charge->id;
       $transaction_data->save();
 
-      
+
       $stand_allocation->transaction_id = $transaction_data->id;
       $stand_allocation->save();
 
