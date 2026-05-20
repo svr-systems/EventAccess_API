@@ -17,6 +17,9 @@ return new class extends Migration {
       // Nueva columna
       $table->text('justification')
         ->after('event_stand_config_id');
+        
+      $table->decimal('price', 11, 2)
+        ->after('supplier_id');
     });
   }
 

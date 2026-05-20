@@ -186,17 +186,25 @@ class EventArea extends Model {
    * ===========================================
    */
   public static function getBuyerItems(Request $request) {
+    $buyer_user = BuyerUser::getFirstByUser($request->user()->id);
 
     $items = self::query();
 
     $items->select([
       'event_areas.id',
       'event_areas.event_id',
-      'event_areas.name'
+      'event_areas.name',
     ]);
 
-    $items->where('event_areas.is_active', 1);
-    $items->where('event_areas.event_id', $request->event_id);
+    $items->where('event_areas.is_active', true)
+      ->where('event_areas.event_id', $request->event_id)
+      ->whereNotExists(function ($query) use ($buyer_user) {
+        $query->select(DB::raw(1))
+          ->from('buyer_offer_areas')
+          ->whereColumn('buyer_offer_areas.event_area_id', 'event_areas.id')
+          ->where('buyer_offer_areas.buyer_id', $buyer_user->buyer_id)
+          ->where('buyer_offer_areas.is_active', true);
+      });
 
     return $items->get();
   }

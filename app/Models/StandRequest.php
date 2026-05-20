@@ -132,7 +132,7 @@ class StandRequest extends Model {
 
   public static function validDataApproved(array $data) {
     $rules = [
-      'notes' => ['required', 'string'],
+      'notes' => ['nullable', 'string'],
       'is_approved' => ['required', 'boolean'],
     ];
 
@@ -164,30 +164,58 @@ class StandRequest extends Model {
       'stand_requests.event_stand_config_id',
       'stand_requests.justification',
       'stand_requests.notes',
+      'stand_requests.price',
       'stand_requests.is_approved',
     ]);
 
     $items->with([
-      'event_stand_config:id,name',
-      'supplier:id,name'
-    ]);
-
-    $items->with([
+      'event_stand_config:id,name,has_electricity,has_water,has_internet',
+      'supplier:id,name',
       'stand_allocation' => function ($query) {
         $query->select([
           'id',
           'stand_request_id',
           'is_paid',
-        ])->where('is_paid', true);
+          'transaction_id',
+          'nexora_invoice_id',
+          'organization_invoice_id',
+        ])->with([
+              'transaction:id,external_id',
+            ]);
       },
     ]);
 
     $items->where('stand_requests.is_active', (bool) ((int) $is_active))
       ->where('stand_requests.event_id', $request->event_id)
-      // ->where('stand_requests.supplier_id', $request->supplier_id)
-      ->where('stand_requests.created_by_id',$request->user()->id);
+      ->where('stand_requests.created_by_id', $request->user()->id);
 
-    return $items->get();
+    $items->leftJoin('stand_allocations', function ($join) {
+      $join->on('stand_allocations.stand_request_id', '=', 'stand_requests.id');
+    });
+
+    $items->where('stand_requests.is_active', (bool) ((int) $is_active))
+      ->where('stand_requests.event_id', $request->event_id)
+      ->where('stand_requests.created_by_id', $request->user()->id);
+
+    $items->orderByRaw("
+      CASE
+        WHEN stand_requests.is_approved IS NULL THEN 1
+        WHEN stand_requests.is_approved = 1 AND stand_allocations.id IS NULL THEN 2
+        WHEN stand_requests.is_approved = 1 AND stand_allocations.id IS NOT NULL THEN 3
+        WHEN stand_requests.is_approved = 0 THEN 4
+        ELSE 5
+      END
+    ");
+
+    return $items->get()->map(function ($item) {
+      if ($item->stand_allocation) {
+        $item->stand_allocation->is_paid = $item->stand_allocation->is_paid ? 1 : 0;
+        $item->stand_allocation->external_id = $item->stand_allocation->transaction?->external_id;
+        $item->stand_allocation->makeHidden(['transaction']);
+      }
+
+      return $item;
+    });
   }
 
   public static function getItem($id, Request $request = null) {
@@ -195,22 +223,21 @@ class StandRequest extends Model {
 
     $item->select(['stand_requests.*']);
 
+    $item->selectSub(function ($query) {
+      $query->from('stand_allocations')
+        ->selectRaw('COALESCE(MAX(CASE WHEN is_paid = 1 THEN 1 ELSE 0 END), 0)')
+        ->whereColumn('stand_allocations.stand_request_id', 'stand_requests.id');
+    }, 'stand_allocation');
+
     $item->with([
       'created_by:id,email,name,paternal_surname,maternal_surname',
       'updated_by:id,email,name,paternal_surname,maternal_surname',
       'event_stand_config:*',
       'supplier:id,name',
-      'stand_allocation' => function ($query) {
-        $query->select([
-          'id',
-          'stand_request_id',
-          'is_paid',
-        ])->where('is_paid', true);
-      },
     ]);
 
     $item->whereKey((int) $id)
-      ->where('stand_requests.created_by_id',$request->user()->id);
+      ->where('stand_requests.created_by_id', $request->user()->id);
 
     $item = $item->first();
 
@@ -222,40 +249,40 @@ class StandRequest extends Model {
   }
 
   public static function getApprovedPendingAllocations(Request $request) {
-  $is_active = $request->query('is_active', 1);
+    $is_active = $request->query('is_active', 1);
 
-  $items = self::query();
+    $items = self::query();
 
-  $items->select([
-    'stand_requests.id',
-    'stand_requests.is_active',
-    'stand_requests.event_id',
-    'stand_requests.supplier_id',
-    'stand_requests.event_stand_config_id',
-    'stand_requests.justification',
-    'stand_requests.notes',
-    'stand_requests.is_approved',
-  ]);
+    $items->select([
+      'stand_requests.id',
+      'stand_requests.is_active',
+      'stand_requests.event_id',
+      'stand_requests.supplier_id',
+      'stand_requests.event_stand_config_id',
+      'stand_requests.justification',
+      'stand_requests.notes',
+      'stand_requests.is_approved',
+    ]);
 
-  $items->with([
-    'stand_allocation' => function ($query) {
-      $query->select([
-        'id',
-        'stand_request_id',
-        'is_paid',
-      ]);
-    },
-  ]);
+    $items->with([
+      'stand_allocation' => function ($query) {
+        $query->select([
+          'id',
+          'stand_request_id',
+          'is_paid',
+        ]);
+      },
+    ]);
 
-  $items->where('stand_requests.is_active', (bool) ((int) $is_active))
-    ->where('stand_requests.event_id', $request->event_id)
-    ->where('stand_requests.is_approved', true)
-    ->whereDoesntHave('stand_allocation', function ($query) {
-      $query->where('is_paid', true);
-    });
+    $items->where('stand_requests.is_active', (bool) ((int) $is_active))
+      ->where('stand_requests.event_id', $request->event_id)
+      ->where('stand_requests.is_approved', true)
+      ->whereDoesntHave('stand_allocation', function ($query) {
+        $query->where('is_paid', true);
+      });
 
-  return $items->get();
-}
+    return $items->get();
+  }
 
   /**
    * ===========================================
@@ -268,6 +295,7 @@ class StandRequest extends Model {
     $item->event_stand_config_id = Input::toId(data_get($data, 'event_stand_config_id'));
     $item->supplier_id = Input::toId(data_get($data, 'supplier_id'));
     $item->justification = Input::toText(data_get($data, 'justification'));
+    $item->price = Input::toText(data_get($data, 'price'));
 
     $item->save();
 
@@ -296,7 +324,7 @@ class StandRequest extends Model {
     ]);
 
     $items->with([
-      'event_stand_config:id,name',
+      'event_stand_config:*',
       'supplier:id,name'
     ]);
 
@@ -305,30 +333,6 @@ class StandRequest extends Model {
       where('stand_requests.is_approved', $request->is_approved);
 
     return $items->get();
-  }
-
-  public static function getCompanyItem($id, Request $request = null) {
-    $item = self::query();
-
-    $item->select(['stand_requests.*']);
-
-    $item->with([
-      'created_by:id,email,name,paternal_surname,maternal_surname',
-      'updated_by:id,email,name,paternal_surname,maternal_surname',
-      'event_stand_config:*',
-      'supplier:id,name'
-    ]);
-
-    $item->whereKey((int) $id)
-      ->where('is_approved',$request->is_approved);
-
-    $item = $item->first();
-
-    if (is_null($item)) {
-      return null;
-    }
-
-    return $item;
   }
 
   /**

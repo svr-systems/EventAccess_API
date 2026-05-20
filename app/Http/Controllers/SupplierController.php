@@ -79,6 +79,11 @@ class SupplierController extends Controller {
         return $this->rsp(422, $valid->errors()->first(), null, $valid->errors()->toArray());
       }
 
+      $valid = FacturapiController::validCustomer($request);
+      if ($valid->msg !== null) {
+        return $this->apiRsp(422, $valid->msg);
+      }
+
 
       if ($store_mode) {
         $item = new Supplier();
@@ -169,7 +174,7 @@ class SupplierController extends Controller {
   public function status(Request $request) {
     try {
       $supplier_user = SupplierUser::getFirstByUser($request->user()->id);
-      $item = Supplier::find($supplier_user->supplier_id,['is_reviewed','reviewed_comment']);
+      $item = Supplier::find($supplier_user->supplier_id, ['is_reviewed', 'reviewed_comment']);
 
       if (is_null($item)) {
         return $this->rsp(404, 'Registro no encontrado');
@@ -227,7 +232,7 @@ class SupplierController extends Controller {
       $item->save();
 
       DB::afterCommit(function () use ($item) {
-        $supplier_user = SupplierUser::where('supplier_id',$item->id)->first();
+        $supplier_user = SupplierUser::where('supplier_id', $item->id)->first();
         $user = User::find($supplier_user->user_id);
         EmailService::ProfileStatus(
           [$user->email],

@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Concerns\HasActiveToggle;
 use App\Models\PresentationTicket;
 use DB;
-use Event;
+use App\Models\Event;
 use Illuminate\Http\Request;
 use Throwable;
 

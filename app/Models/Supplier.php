@@ -52,6 +52,10 @@ class Supplier extends Model {
     return $this->belongsTo(Municipality::class, 'municipality_id');
   }
 
+  public function supplier_users() {
+    return $this->hasMany(SupplierUser::class);
+  }
+
   /**
    * ===========================================
    * ACCESSORES
@@ -85,7 +89,7 @@ class Supplier extends Model {
 
       // 'logo_path' => ['nullable', 'string', 'max:50'],
       'phone' => ['nullable', 'regex:/^\d{10}$/'],
-      'website_url' => ['nullable', 'url', 'max:150'],
+      'website_url' => ['nullable', 'string', 'max:150'],
       'description' => ['nullable', 'string'],
 
       'address' => ['required', 'string', 'max:150'],
@@ -114,7 +118,6 @@ class Supplier extends Model {
 
       'phone.regex' => 'El teléfono debe contener exactamente 10 dígitos.',
 
-      'website_url.url' => 'El sitio web debe ser una URL válida.',
       'website_url.max' => 'El sitio web no puede exceder 150 caracteres.',
 
       'description.string' => 'La descripción debe ser un texto válido.',
@@ -454,7 +457,7 @@ class Supplier extends Model {
 
 
   //COMPANY
-  
+
 
   public static function getNotReviewItems(Request $request) {
     $items = self::query();
@@ -474,6 +477,7 @@ class Supplier extends Model {
       where('event_suppliers.event_id', '=', $request->event_id);
 
     $items->orderBy('is_reviewed')->
+      orderBy('fiscal_regime_id', 'asc')->
       orderBy('name', 'asc');
 
     $items = $items->get();
@@ -484,7 +488,7 @@ class Supplier extends Model {
 
     return $items;
   }
-  
+
 
   public static function getNotReviewItem(Request $request) {
     $item = self::query();

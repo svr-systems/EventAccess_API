@@ -37,6 +37,8 @@ class CatalogController extends Controller
         'roles' => \App\Models\Role::class,
         'states' => \App\Models\State::class,
         'municipalities' => \App\Models\Municipality::class,
+        'fiscal_regimes' => \App\Models\FiscalRegime::class,
+        'cfdi_usages' => \App\Models\CfdiUsage::class,
         default => null,
       };
 

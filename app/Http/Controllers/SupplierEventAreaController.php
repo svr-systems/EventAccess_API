@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\HasActiveToggle;
 use App\Models\BuyerUser;
+use App\Models\EventArea;
 use App\Models\SupplierEventArea;
 use App\Models\SupplierUser;
 use DB;
@@ -74,8 +75,18 @@ class SupplierEventAreaController extends Controller {
 
       $store_mode = is_null($id);
 
+      $event_area_id = $request->event_area_id;
+      if($event_area_id === null){
+        $event_area = new EventArea;
+        $event_area->name = $request->event_area['name'];
+        $event_area->event_id = $request->event_area['event_id'];
+        $event_area->save();
+        $event_area_id = $event_area->id;
+      }
+
       $supplier_user = SupplierUser::getFirstByUser($request->user()->id);
-      $payload = $request->all();
+      // $payload = $request->all();
+      $payload['event_area_id'] = $event_area_id;
       $payload['supplier_id'] = $supplier_user->supplier_id;
       $payload['supplier_user_id'] = $supplier_user->id;
       $payload['is_active'] = $is_active;

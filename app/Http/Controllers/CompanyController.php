@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\HasActiveToggle;
 use App\Models\Company;
+use App\Models\CompanyUser;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Throwable;
@@ -70,6 +71,11 @@ class CompanyController extends Controller {
         return $this->rsp(422, $valid->errors()->first(), null, $valid->errors()->toArray());
       }
 
+      $valid = FacturapiController::validCustomer($request);
+      if ($valid->msg !== null) {
+        return $this->apiRsp(422, $valid->msg);
+      }
+
 
       if ($store_mode) {
         $item = new Company();
@@ -97,6 +103,122 @@ class CompanyController extends Controller {
         $store_mode ? 201 : 200,
         'Registro ' . ($store_mode ? 'agregado' : 'editado') . ' correctamente',
         $store_mode ? ['item' => ['id' => $item->id]] : null
+      );
+    } catch (Throwable $err) {
+      DB::rollBack();
+      return $this->rsp(500, null, $err);
+    }
+  }
+
+  //COMPANY
+
+  public function comapnyShow(Request $request) {
+    try {
+      $item = Company::getCompanyItem($request);
+
+      if (is_null($item)) {
+        return $this->rsp(404, 'Registro no encontrado');
+      }
+
+      return $this->rsp(200, 'Registro retornado correctamente', [
+        'item' => $item,
+      ]);
+    } catch (Throwable $err) {
+      return $this->rsp(500, null, $err);
+    }
+  }
+
+  public function companyStore(Request $request) {
+    DB::beginTransaction();
+
+    try {
+      $company_user = CompanyUser::getFirstByUser($request->user()->id);
+
+      $valid = Company::validCompanyData($request->all());
+      if ($valid->fails()) {
+        DB::rollBack();
+        return $this->rsp(422, $valid->errors()->first(), null, $valid->errors()->toArray());
+      }
+
+      $valid = FacturapiController::validCustomer($request);
+      if ($valid->msg !== null) {
+        return $this->apiRsp(422, $valid->msg);
+      }
+
+      $item = Company::find((int) $company_user->company_id);
+
+      if (is_null($item)) {
+        DB::rollBack();
+        return $this->rsp(404, 'Registro no encontrado');
+      }
+
+      $request->fiscal_organization_id = $item->fiscal_organization_id;
+      $facturapi = FacturapiController::storeOrganization($request);
+
+      if (!$facturapi->status) {
+        return $this->apiRsp(422, $facturapi->msg);
+      }
+
+      $payload = $request->all();
+      $payload['fiscal_organization_id'] = $facturapi->fiscal_organization_id;
+      $payload['logo_doc'] = $request->file('logo_doc');
+
+      $item = Company::saveCompanyData($item, $payload);
+
+      DB::commit();
+
+      return $this->rsp(
+        201,
+        'Registro editado correctamente',
+        ['item' => ['id' => $item->id]]
+      );
+    } catch (Throwable $err) {
+      DB::rollBack();
+      return $this->rsp(500, null, $err);
+    }
+  }
+
+  public function certificatesStore(Request $request) {
+    DB::beginTransaction();
+
+    try {
+      $company_user = CompanyUser::getFirstByUser($request->user()->id);
+
+      $valid = Company::validCertificateData($request->all());
+      if ($valid->fails()) {
+        DB::rollBack();
+        return $this->rsp(422, $valid->errors()->first(), null, $valid->errors()->toArray());
+      }
+
+      $item = Company::find((int) $company_user->company_id);
+
+      if (is_null($item)) {
+        DB::rollBack();
+        return $this->rsp(404, 'Registro no encontrado');
+      }
+
+      if (is_null($item->fiscal_organization_id)) {
+        DB::rollBack();
+        return $this->rsp(404, 'No se han cargado sus datos fiscales');
+      }
+
+      $facturapi = FacturapiController::storeCertificationOrganization($request, $item->fiscal_organization_id);
+
+      if (!$facturapi->status) {
+        return $this->apiRsp(422, $facturapi->msg);
+      }
+
+      $item->fiscal_certificate_updated_at = $facturapi->fiscal_certificate_updated_at;
+      $item->fiscal_certificate_expires_at = $facturapi->fiscal_certificate_expires_at;
+      $item->fiscal_certificate_serial_number = $facturapi->fiscal_certificate_serial_number;
+
+      $item->save();
+
+      DB::commit();
+
+      return $this->rsp(
+        200,
+        'Registro editado correctamente'
       );
     } catch (Throwable $err) {
       DB::rollBack();

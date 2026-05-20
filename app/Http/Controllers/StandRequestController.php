@@ -88,6 +88,8 @@ class StandRequestController extends Controller {
         }
       }
 
+      $event_stand_config = EventStandConfig::find($request->event_stand_config_id);
+      $payload['price'] = $event_stand_config->price;
 
 
       // Solo validar cupo cuando se crea
@@ -160,22 +162,6 @@ class StandRequestController extends Controller {
     try {
       return $this->rsp(200, 'Registros retornados correctamente', [
         'items' => StandRequest::getCompanyItems($request),
-      ]);
-    } catch (Throwable $err) {
-      return $this->rsp(500, null, $err);
-    }
-  }
-
-  public function companyShow(string $id, Request $request) {
-    try {
-      $item = StandRequest::getCompanyItem($id, $request);
-
-      if (is_null($item)) {
-        return $this->rsp(404, 'Registro no encontrado');
-      }
-
-      return $this->rsp(200, 'Registro retornado correctamente', [
-        'item' => $item,
       ]);
     } catch (Throwable $err) {
       return $this->rsp(500, null, $err);

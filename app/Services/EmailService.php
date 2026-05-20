@@ -83,6 +83,11 @@ class EmailService
     }
     self::send($emails, $data, $subjet, 'ProfileStatus');
   }
+  
+  public static function IncompleteProfile(array $emails, array $data): void
+  {
+    self::send($emails, $data, 'Perfil incompleto', 'IncompleteProfile');
+  }
 
   /**
    * ===========================================

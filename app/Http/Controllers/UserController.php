@@ -409,6 +409,7 @@ class UserController extends Controller {
 
       $item->password = Hash::make(trim((string) $request->password));
       $item->password_recover_at = null;
+      $item->email_verified_at = now();
       $item->save();
 
       DB::afterCommit(function () use ($item) {

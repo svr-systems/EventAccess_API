@@ -181,6 +181,8 @@ class EventStandConfig extends Model {
 
   public static function getSuplierItems(Request $request) {
 
+    $supplier_user = SupplierUser::getFirstByUser($request->user()->id);
+
     $occupiedSubquery = DB::table('stand_requests')
       ->select([
         'event_stand_config_id',
@@ -219,7 +221,18 @@ class EventStandConfig extends Model {
 
     $items->where('event_stand_configs.is_active', true)
       ->where('event_stand_configs.event_id', $request->event_id)
-      ->whereRaw('event_stand_configs.capacity > COALESCE(sr.occupied, 0)');
+      ->whereRaw('event_stand_configs.capacity > COALESCE(sr.occupied, 0)')
+      ->whereNotExists(function ($query) use ($supplier_user) {
+        $query->select(DB::raw(1))
+          ->from('stand_requests')
+          ->whereColumn('stand_requests.event_stand_config_id', 'event_stand_configs.id')
+          ->where('stand_requests.supplier_id', $supplier_user->supplier_id)
+          ->where('stand_requests.is_active', true)
+          ->where(function ($q) {
+            $q->whereNull('stand_requests.is_approved')
+              ->orWhere('stand_requests.is_approved', true);
+          });
+      });
 
     return $items->get();
   }

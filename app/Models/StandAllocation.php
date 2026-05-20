@@ -23,7 +23,6 @@ class StandAllocation extends Model {
     'is_active' => 'boolean',
     'created_at' => 'datetime:Y-m-d H:i:s',
     'updated_at' => 'datetime:Y-m-d H:i:s',
-    'is_paid' => 'boolean',
   ];
 
   /**
@@ -41,6 +40,10 @@ class StandAllocation extends Model {
 
   public function updated_by(): BelongsTo {
     return $this->belongsTo(User::class, 'updated_by_id');
+  }
+
+  public function transaction() {
+    return $this->belongsTo(Transaction::class);
   }
 
   /**

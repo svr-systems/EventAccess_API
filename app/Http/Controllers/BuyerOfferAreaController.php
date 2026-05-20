@@ -6,6 +6,8 @@ use App\Http\Controllers\Concerns\HasActiveToggle;
 use App\Models\Buyer;
 use App\Models\BuyerOfferArea;
 use App\Models\BuyerUser;
+use App\Models\EventArea;
+use App\Support\Input;
 use DB;
 use Illuminate\Http\Request;
 use Throwable;
@@ -66,7 +68,24 @@ class BuyerOfferAreaController extends Controller {
     try {
       $store_mode = is_null($id);
 
-      $valid = BuyerOfferArea::validData($request->all());
+
+      $event_area_id = $request->event_area_id;
+      if ($event_area_id === null) {
+        $event_area = new EventArea;
+        $event_area->name =  Input::toUpper($request->event_area['name']);
+        $event_area->event_id = $request->event_area['event_id'];
+        $event_area->save();
+        $event_area_id = $event_area->id;
+      }
+
+      $buyer_user = BuyerUser::getFirstByUser($request->user()->id);
+      $payload = $request->all();
+      $payload['id'] = $id;
+      $payload['event_area_id'] = $event_area_id;
+      $payload['buyer_id'] = $buyer_user->buyer_id;
+      $payload['buyer_user_id'] = $buyer_user->id;
+
+      $valid = BuyerOfferArea::validData($payload);
       if ($valid->fails()) {
         DB::rollBack();
         return $this->rsp(422, $valid->errors()->first(), null, $valid->errors()->toArray());
@@ -83,11 +102,6 @@ class BuyerOfferAreaController extends Controller {
           return $this->rsp(404, 'Registro no encontrado');
         }
       }
-
-      $buyer_user = BuyerUser::getFirstByUser($request->user()->id);
-      $payload = $request->all();
-      $payload['buyer_id'] = $buyer_user->buyer_id;
-      $payload['buyer_user_id'] = $buyer_user->id;
 
       $item = BuyerOfferArea::saveData($item, $payload);
 

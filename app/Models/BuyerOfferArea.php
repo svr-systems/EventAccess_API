@@ -91,7 +91,8 @@ class BuyerOfferArea extends Model {
 
       $query = self::query()
         ->where('buyer_id', $buyer_id)
-        ->where('event_area_id', $event_area_id);
+        ->where('event_area_id', $event_area_id)
+        ->where('is_active',true);
 
       if (!is_null($id)) {
         $query->where('id', '<>', $id);

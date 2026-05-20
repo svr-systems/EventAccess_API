@@ -100,6 +100,33 @@ class StandAllocationController extends Controller {
     }
   }
 
+  public function stamp(Request $request) {
+    try {
+
+      $item = StandAllocation::find($request->stand_allocation_id);
+
+      if (is_null($item)) {
+        return $this->rsp(404, 'Registro no encontrado');
+      }
+
+      $response = FacturapiController::stampNexoraInvoice($request->stand_allocation_id);
+      if (!$response->status) {
+        return $this->rsp(404, $response->message);
+      }
+
+      $response = FacturapiController::stampOrganizationInvoice($request->stand_allocation_id);
+      if (!$response->status) {
+        return $this->rsp(404, $response->message);
+      }
+
+      return $this->rsp(200, 'Se han emitido las facturas correctamente',
+        null
+      );
+    } catch (Throwable $err) {
+      return $this->rsp(500, null, $err);
+    }
+  }
+
   /**
    * ===========================================
    * CRUD COMPANY

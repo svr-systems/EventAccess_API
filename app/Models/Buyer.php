@@ -54,6 +54,10 @@ class Buyer extends Model {
   public function eventArea() {
     return $this->belongsTo(EventArea::class);
   }
+  
+  public function buyer_users() {
+  return $this->hasMany(BuyerUser::class);
+}
 
   /**
    * ===========================================
@@ -187,7 +191,7 @@ class Buyer extends Model {
       'logo_doc' => ['nullable', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
 
       'phone' => ['nullable', 'regex:/^\d{10}$/'],
-      'website_url' => ['nullable', 'url', 'max:150'],
+      'website_url' => ['nullable', 'string', 'max:150'],
       'description' => ['nullable', 'string'],
 
       'address' => ['nullable', 'string', 'max:150'],
@@ -206,7 +210,6 @@ class Buyer extends Model {
 
       'phone.regex' => 'El teléfono debe contener exactamente 10 dígitos.',
 
-      'website_url.url' => 'El sitio web debe ser una URL válida.',
       'website_url.max' => 'El sitio web no puede exceder 150 caracteres.',
 
       'description.string' => 'La descripción debe ser un texto válido.',

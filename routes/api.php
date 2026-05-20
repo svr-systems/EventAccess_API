@@ -15,9 +15,11 @@ use App\Http\Controllers\EventController;
 use App\Http\Controllers\EventMeetingWindowController;
 use App\Http\Controllers\EventStandConfigController;
 use App\Http\Controllers\EventSupplierController;
+use App\Http\Controllers\FacturapiController;
 use App\Http\Controllers\MeetingController;
 use App\Http\Controllers\MeetingRequestController;
 use App\Http\Controllers\OfferController;
+use App\Http\Controllers\OpenPayController;
 use App\Http\Controllers\PresentationDateController;
 use App\Http\Controllers\PresentationTicketController;
 use App\Http\Controllers\SaleController;
@@ -50,8 +52,6 @@ Route::prefix('v1')->group(function () {
   // Público (sin auth)
   // -------------------------
   Route::prefix('public')->group(function () {
-
-    // Route::get('/catalogs/{catalog}', [CatalogController::class, 'publicIndex']);
 
 
     Route::prefix('events')->group(function () {
@@ -155,6 +155,12 @@ Route::prefix('v1')->group(function () {
     Route::middleware([EnsureUserIsSupplier::class])->group(function () {
       Route::prefix('suppliers')->group(function () {
 
+      
+        Route::post('/stand_allocations/stamp', [StandAllocationController::class, 'stamp']);
+        Route::post('/stand_allocations/stamp/files', [FacturapiController::class, 'getInvoiceFile']);
+        Route::post('/stand_allocations/payment', [OpenPayController::class, 'payment']);
+        Route::get('/3dsecure/transaction/{openpay_id}', [OpenpayController::class, 'saveOpenpayTransaction']);
+
         Route::get('/catalogs/{catalog}', [CatalogController::class, 'supplierIndex']);
 
         Route::get('/meetings', [MeetingController::class, 'supplierIndex']);
@@ -248,7 +254,6 @@ Route::prefix('v1')->group(function () {
         Route::get('/stand_allocations/{id}', [StandAllocationController::class, 'companyShow']);
 
         Route::get('/events/stand_requests', [StandRequestController::class, 'companyIndex']);
-        Route::get('/events/stand_requests/{id}', [StandRequestController::class, 'companyShow']);
         Route::post('/events/stand_requests/{id}/approved', [StandRequestController::class, 'setApproved']);
 
         Route::patch('/events/event_stand_configs/activate', [EventController::class, 'standActivate']);
@@ -272,7 +277,7 @@ Route::prefix('v1')->group(function () {
         Route::patch('/events/{id}/address', [EventController::class, 'setAddress']);
         Route::patch('/events/{id}/activate', [EventController::class, 'activate']);
 
-        
+
         // Route::apiResource('/users', CompanyUserController::class);
         Route::get('/users', [CompanyUserController::class, 'index']);
         Route::get('/users/{id}', [CompanyUserController::class, 'show']);
@@ -282,6 +287,10 @@ Route::prefix('v1')->group(function () {
         Route::patch('/users/{id}/activate', [CompanyUserController::class, 'activate']);
 
         Route::get('companies', [CompanyController::class, 'index']);
+
+        Route::get('/profile', [CompanyController::class, 'comapnyShow']);
+        Route::post('/profile', [CompanyController::class, 'companyStore']);
+        Route::post('/profile/certificates', [CompanyController::class, 'certificatesStore']);
 
         Route::get('catalogs/{catalog}', [CatalogController::class, 'CompanyIndex']);
 
@@ -299,11 +308,11 @@ Route::prefix('v1')->group(function () {
       Route::patch('certifications/{id}/activate', [CertificationController::class, 'activate']);
 
       // Route::apiResource('companies/users', CompanyUserController::class);
-        Route::get('companies/users', [CompanyUserController::class, 'index']);
-        Route::get('companies/users/{id}', [CompanyUserController::class, 'show']);
-        Route::post('companies/users', [CompanyUserController::class, 'store']);
-        Route::post('companies/users/{id}', [CompanyUserController::class, 'update']);
-        Route::delete('companies/users/{id}', [CompanyUserController::class, 'destroy']);
+      Route::get('companies/users', [CompanyUserController::class, 'index']);
+      Route::get('companies/users/{id}', [CompanyUserController::class, 'show']);
+      Route::post('companies/users', [CompanyUserController::class, 'store']);
+      Route::post('companies/users/{id}', [CompanyUserController::class, 'update']);
+      Route::delete('companies/users/{id}', [CompanyUserController::class, 'destroy']);
       Route::patch('companies/users/{id}/activate', [CompanyUserController::class, 'activate']);
 
       Route::apiResource('companies', CompanyController::class);
