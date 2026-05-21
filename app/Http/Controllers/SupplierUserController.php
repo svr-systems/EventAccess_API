@@ -3,16 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\HasActiveToggle;
-use App\Models\BuyerUser;
 use App\Models\EventSupplier;
 use App\Models\Supplier;
-use App\Models\SupplierCertification;
 use App\Models\SupplierUser;
 use App\Models\User;
 use App\Services\EmailService;
 use App\Support\Input;
 use DB;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Throwable;
 
 class SupplierUserController extends Controller {
@@ -161,9 +160,9 @@ class SupplierUserController extends Controller {
     DB::beginTransaction();
 
     try {
-      $user = json_encode($request->user);
-      $user_data = json_decode($user);
-      // $user_data = json_decode($request->user);
+      // $user = json_encode($request->user);
+      // $user_data = json_decode($user);
+      $user_data = json_decode($request->user);
       $user_data->role_id = 6;
 
       $email = Input::toLower($user_data->email);
@@ -201,10 +200,12 @@ class SupplierUserController extends Controller {
       $payload = (array) $user_data;
 
       $user = User::saveData($user, $payload);
+      $user->password = Hash::make(trim((string) $user_data->password));
+      $user->save();
 
-      $supplier = json_encode($request->supplier);
-      $supplier_data = (array) json_decode($supplier);
-      // $supplier_data = (array) json_decode($request->supplier);
+      // $supplier = json_encode($request->supplier);
+      // $supplier_data = (array) json_decode($supplier);
+      $supplier_data = (array) json_decode($request->supplier);
 
       $supplier = new Supplier;
       $supplier->created_by_id = $user->id;

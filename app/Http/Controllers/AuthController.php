@@ -40,9 +40,9 @@ class AuthController extends Controller
         return $this->rsp(422, 'Tu cuenta está inactiva. Contacta al administrador.', null);
       }
 
-      if (is_null($user->email_verified_at)) {
-        return $this->rsp(422, 'Tu cuenta no está verificada. Revisa tu correo para confirmar.', null);
-      }
+      // if (is_null($user->email_verified_at)) {
+      //   return $this->rsp(422, 'Tu cuenta no está verificada. Revisa tu correo para confirmar.', null);
+      // }
 
       if (!Auth::attempt(['email' => $email, 'password' => $password])) {
         return $this->rsp(422, 'Datos de acceso inválidos', null);
@@ -59,6 +59,7 @@ class AuthController extends Controller
         ] : null,
         'full_name' => Person::fullName($auth_user),
         'email' => $auth_user->email,
+        'email_verified_at' => $auth_user->email_verified_at,
       ];
 
       return $this->rsp(200, 'Datos de acceso válidos', [

@@ -12,7 +12,7 @@ return new class extends Migration {
       $table->timestamps();
       $table->boolean('status');
       $table->string('card_number', 20);
-      $table->foreignId('bank_type_id')->constrained('bank_types');
+      $table->foreignId('bank_type_id')->nullable()->default(null)->constrained('bank_types');
       $table->foreignId('payment_form_id')->constrained('payment_forms');
       $table->string('authorization_code', 20);
       $table->string('reading_mode', 5)->nullable();

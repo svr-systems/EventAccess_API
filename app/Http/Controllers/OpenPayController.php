@@ -15,7 +15,6 @@ use Throwable;
 
 class OpenPayController extends Controller {
   public function payment(Request $request) {
-    DB::beginTransaction();
     try {
 
       $openpay = Openpay::getInstance(
@@ -67,18 +66,22 @@ class OpenPayController extends Controller {
 
         $redirect_url = null;
 
+        $stand_allocation_id = null;
+
         if (!$use_3d_secure) {
-          $this->saveOpenpayTransaction($charge->id);
+          $stand_allocation = $this->saveOpenpayTransaction($charge->id,false);
+          $stand_allocation_id = $stand_allocation->id;
         } else {
           $redirect_url = $charge->payment_method->url;
         }
 
-        DB::commit();
-
         return $this->apiRsp(
           200,
           'Registros creado correctamente',
-          ['redirect_url' => $redirect_url]
+          [
+            'redirect_url' => $redirect_url,
+            'stand_allocation_id' => $stand_allocation_id
+          ]
         );
       }
 
@@ -117,7 +120,7 @@ class OpenPayController extends Controller {
     }
   }
 
-  public function saveOpenpayTransaction($openpay_id) {
+  public function saveOpenpayTransaction($openpay_id, $is_3ds = true) {
     DB::beginTransaction();
     try {
       $openpay = Openpay::getInstance(
@@ -177,6 +180,11 @@ class OpenPayController extends Controller {
       $stand_allocation->transaction_id = $transaction_data->id;
       $stand_allocation->save();
 
+      if(!$is_3ds){
+        DB::commit();
+        return $stand_allocation;
+      }
+
       $transaction = new Transaction();
       // $transaction = Transaction::saveItem($transaction, $transaction_data);
 
@@ -184,7 +192,10 @@ class OpenPayController extends Controller {
       return $this->apiRsp(
         200,
         'Transacción terminada correctamente',
-        ['status' => $status]
+        [
+          'status' => $status,
+          'stand_allocation_id' => $stand_allocation->id
+        ]
       );
     } catch (Throwable $err) {
       DB::rollback();

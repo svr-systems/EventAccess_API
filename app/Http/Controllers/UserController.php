@@ -211,12 +211,12 @@ class UserController extends Controller {
     DB::beginTransaction();
 
     try {
-      $valid = User::validPassword($request->all());
+      // $valid = User::validPassword($request->all());
 
-      if ($valid->fails()) {
-        DB::rollBack();
-        return $this->rsp(422, $valid->errors()->first(), null, $valid->errors()->toArray());
-      }
+      // if ($valid->fails()) {
+      //   DB::rollBack();
+      //   return $this->rsp(422, $valid->errors()->first(), null, $valid->errors()->toArray());
+      // }
 
       $user_id = $this->decryptUserId($token);
 
@@ -238,7 +238,6 @@ class UserController extends Controller {
       }
 
       $item->email_verified_at = now();
-      $item->password = Hash::make(trim((string) $request->password));
       $item->save();
 
       DB::afterCommit(function () use ($item) {
@@ -491,6 +490,9 @@ class UserController extends Controller {
       $payload['avatar_doc'] = $request->file('avatar_doc');
 
       $item = User::saveData($item, $payload);
+
+      $item->password = Hash::make(trim((string) $request->password));
+      $item->save();
 
       $must_confirm = $store_mode || (!is_null($email_current) && $email_current !== $item->email);
 
