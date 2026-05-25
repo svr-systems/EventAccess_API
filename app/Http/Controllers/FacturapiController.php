@@ -2,18 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\CfdiUsage;
 use App\Models\Company;
 use App\Models\Event;
 use App\Models\FiscalRegime;
-use App\Models\StandAllocation;
-use App\Models\StandRequest;
-use App\Models\Supplier;
 use Illuminate\Http\Request;
 use Facturapi\Facturapi;
 use Illuminate\Support\Carbon;
 use stdClass;
-use Storage;
 use Throwable;
 
 class FacturapiController extends Controller {
@@ -215,11 +210,20 @@ class FacturapiController extends Controller {
     try {
       $facturapi = new Facturapi(env('FACTURAPI_KEY'));
 
+      if($request->organization_invoice_id){
+        $event = Event::find($request->event_id);
+        $company = Company::find($event->company_id);
+        $facturapi = $this->getFacturapiOrganizationInstance($company);
+        $invoice_id = $request->organization_invoice_id;
+      }else{
+        $invoice_id = $request->nexora_invoice_id;
+      }
+
       $file = null;
       if ($request->file_extention === 'pdf') {
-        $file = $facturapi->Invoices->download_pdf($request->invoice_id);
+        $file = $facturapi->Invoices->download_pdf($invoice_id);
       } else {
-        $file = $facturapi->Invoices->download_xml($request->invoice_id);
+        $file = $facturapi->Invoices->download_xml($invoice_id);
       }
 
       $file = base64_encode($file);
