@@ -97,6 +97,12 @@ Route::prefix('v1')->group(function () {
     Route::middleware([EnsureUserIsAttendee::class])->group(function () {
       Route::prefix('attendees')->group(function () {
 
+
+        Route::post('/sales/payment', [SaleController::class, 'payment']);
+        Route::get('/sales/3dsecure/transaction/{openpay_id}', [SaleController::class, 'payment3dSecure']);
+        Route::post('/sales/stamp', [SaleController::class, 'stamp']);
+        Route::post('/sales/stamp/files', [FacturapiController::class, 'getInvoiceFile']);
+
         Route::get('/catalogs/{catalog}', [CatalogController::class, 'attendeeIndex']);
 
         Route::get('create', [AttendeeUserController::class, 'syncAttendeeUsers']);

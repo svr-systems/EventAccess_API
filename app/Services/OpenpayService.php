@@ -47,7 +47,7 @@ class OpenpayService {
         'success' => false,
         'is_openpay_error' => false,
         'http_code' => $error['http_code'],
-        'message' => $error['message'],
+        'message' => $error_code . ' - ' . $error['message'],
         'error_code' => $error_code,
         'exception' => $e,
       ];
