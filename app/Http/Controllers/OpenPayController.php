@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Catalogs\OpenpayErrorCatalog;
 use App\Models\BankType;
 use App\Models\StandAllocation;
 use App\Models\StandRequest;
@@ -14,111 +15,41 @@ use Illuminate\Http\Request;
 use Throwable;
 
 class OpenPayController extends Controller {
-  public function payment(Request $request) {
+
+public function payment($charge_data) {
+  try {
+    $openpay = Openpay::getInstance(
+      env('OPENPAY_MERCHANT_ID'),
+      env('OPENPAY_CUSTOMER_ID'),
+      'MX',
+      '127.0.0.1'
+    );
+
+    return $openpay->charges->create($charge_data);
+
+  } catch (Throwable $e) {
     try {
+      $error_code = method_exists($e, 'getErrorCode')
+        ? (int) $e->getErrorCode()
+        : null;
 
-      $openpay = Openpay::getInstance(
-        env('OPENPAY_MERCHANT_ID'),
-        env('OPENPAY_CUSTOMER_ID'),
-        'MX',
-        '127.0.0.1'
-      );
+      $error = OpenpayErrorCatalog::get($error_code);
 
-      $user = User::find($request->user()->id);
-      $stand_request = StandRequest::find($request->stand_request_id);
-      $stand_allocation = StandAllocation::where('stand_request_id', $stand_request->id)->
-        where('is_active', true)->
-        where('is_paid', true)->
-        first();
-      // $event_stand_config = EventStandConfig::find($stand_request->event_stand_config->id);
-
-      // if (true) {
-      if ($stand_request->is_approved && is_null($stand_allocation)) {
-        $customer = array(
-          'name' => $request->name,
-          'last_name' => $request->last_name,
-          'phone_number' => $user->phone,
-          'email' => $user->email
-        );
-
-        $chargeData = array(
-          'method' => 'card',
-          'source_id' => $request->token_id,
-          'amount' => $stand_request->price,
-          'description' => 'SR-' . $stand_request->id,
-          // 'order_id' => $consultation_id,
-          'use_card_points' => $request->use_card_points,
-          'device_session_id' => $request->device_session_id,
-          'customer' => $customer,
-        );
-
-        $use_3d_secure = false;
-
-        if (Input::toFloat(env('OPENPAY_3D_SECURE_AMOUNT'))) {
-          if ($stand_request->price > Input::toFloat(env('OPENPAY_3D_SECURE_AMOUNT'))) {
-            $chargeData['use_3d_secure'] = true;
-            $chargeData['redirect_url'] = env('APP_FRONT_URL') . 'proveedor/pago_exitoso';
-            $use_3d_secure = true;
-          }
-        }
-
-        $charge = $openpay->charges->create($chargeData);
-
-        $redirect_url = null;
-
-        $stand_allocation_id = null;
-
-        if (!$use_3d_secure) {
-          $stand_allocation = $this->saveOpenpayTransaction($charge->id,false);
-          $stand_allocation_id = $stand_allocation->id;
-        } else {
-          $redirect_url = $charge->payment_method->url;
-        }
-
-        return $this->apiRsp(
-          200,
-          'Registros creado correctamente',
-          [
-            'redirect_url' => $redirect_url,
-            'stand_allocation_id' => $stand_allocation_id
-          ]
-        );
+      if (!$error) {
+        return $this->apiRsp(500, null, $e);
       }
 
       return $this->apiRsp(
-        422,
-        'Este registro ya hacido aprobado y pagado'
-      );
-
-    } catch (Throwable $e) {
-      $error_code = null;
-      $description = null;
-      try {
-        $error_code = $e->getErrorCode();
-        $description = $e->getMessage();
-      } catch (Throwable $err) {
-        return $this->apiRsp(500, null, $e);
-      }
-      $http_code = 500;
-      $message = 'Transacción fallida. Comuniquese con su banco e ingrese sus datos correctamente e inténtelo de nuevo.';
-
-      if ($error_code === 3004) {
-        $message = 'Tarjeta declinada.';
-        $http_code = 422;
-      } elseif ($error_code === 3005) {
-        $message = 'Tarjeta declinada.';
-        $http_code = 422;
-      } else {
-        return $this->apiRsp(500, null, $e);
-      }
-      return $this->apiRsp(
-        $http_code,
-        $message,
+        $error['http_code'],
+        $error['message'],
         null
       );
 
+    } catch (Throwable $err) {
+      return $this->apiRsp(500, null, $e);
     }
   }
+}
 
   public function saveOpenpayTransaction($openpay_id, $is_3ds = true) {
     DB::beginTransaction();
@@ -180,7 +111,7 @@ class OpenPayController extends Controller {
       $stand_allocation->transaction_id = $transaction_data->id;
       $stand_allocation->save();
 
-      if(!$is_3ds){
+      if (!$is_3ds) {
         DB::commit();
         return $stand_allocation;
       }
@@ -201,5 +132,35 @@ class OpenPayController extends Controller {
       DB::rollback();
       return $this->apiRsp(500, null, $err);
     }
+  }
+
+  public static function getCustomer($user, $request) {
+    return array(
+      'name' => $request->name,
+      'last_name' => $request->last_name,
+      'phone_number' => $user->phone,
+      'email' => $user->email
+    );
+  }
+
+  public static function getChargeData($customer, $data) {
+    $charge_data = array(
+      'method' => 'card',
+      'source_id' => $data->token_id,
+      'amount' => $data->price,
+      'description' => $data->description,
+      'use_card_points' => $data->use_card_points,
+      'device_session_id' => $data->device_session_id,
+      'customer' => $customer,
+      'use_3d_secure' => false,
+    );
+
+    if (Input::toFloat(env('OPENPAY_3D_SECURE_AMOUNT'))) {
+      if ($data->price > Input::toFloat(env('OPENPAY_3D_SECURE_AMOUNT'))) {
+        $charge_data['use_3d_secure'] = true;
+        $charge_data['redirect_url'] = env('APP_FRONT_URL') . 'proveedor/pago_exitoso';
+      }
+    }
+    return $charge_data;
   }
 }

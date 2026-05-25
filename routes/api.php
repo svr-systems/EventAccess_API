@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AttendeeUserController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BuyerController;
 use App\Http\Controllers\BuyerOfferAreaController;
@@ -95,6 +96,13 @@ Route::prefix('v1')->group(function () {
   Route::group(['middleware' => 'auth:api'], function () {
     Route::middleware([EnsureUserIsAttendee::class])->group(function () {
       Route::prefix('attendees')->group(function () {
+
+        Route::get('/catalogs/{catalog}', [CatalogController::class, 'attendeeIndex']);
+
+        Route::get('create', [AttendeeUserController::class, 'syncAttendeeUsers']);
+        Route::get('profile', [AttendeeUserController::class, 'show']);
+        Route::post('profile', [AttendeeUserController::class, 'store']);
+
         Route::get('tickets', [PresentationTicketController::class, 'attendeeIndex']);
       });
     });
@@ -155,11 +163,11 @@ Route::prefix('v1')->group(function () {
     Route::middleware([EnsureUserIsSupplier::class])->group(function () {
       Route::prefix('suppliers')->group(function () {
 
-      
+
         Route::post('/stand_allocations/stamp', [StandAllocationController::class, 'stamp']);
         Route::post('/stand_allocations/stamp/files', [FacturapiController::class, 'getInvoiceFile']);
-        Route::post('/stand_allocations/payment', [OpenPayController::class, 'payment']);
-        Route::get('/3dsecure/transaction/{openpay_id}', [OpenpayController::class, 'saveOpenpayTransaction']);
+        Route::post('/stand_allocations/payment', [StandAllocationController::class, 'payment']);
+        Route::get('/3dsecure/transaction/{openpay_id}', [StandAllocationController::class, 'payment3dSecure']);
 
         Route::get('/catalogs/{catalog}', [CatalogController::class, 'supplierIndex']);
 

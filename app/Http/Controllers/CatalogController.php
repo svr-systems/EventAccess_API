@@ -132,4 +132,27 @@ class CatalogController extends Controller
       return $this->rsp(500, null, $err);
     }
   }
+
+  public function attendeeIndex(string $catalog, Request $request)
+  {
+    try {
+      $catalog = strtolower(trim($catalog));
+
+      $model = match ($catalog) {
+        'fiscal_regimes' => \App\Models\FiscalRegime::class,
+        'cfdi_usages' => \App\Models\CfdiUsage::class,
+        default => null,
+      };
+
+      if (!$model) {
+        return $this->rsp(404, 'Catálogo no encontrado');
+      }
+
+      return $this->rsp(200, 'Registros retornados correctamente', [
+        'items' => $model::getItems($request),
+      ]);
+    } catch (Throwable $err) {
+      return $this->rsp(500, null, $err);
+    }
+  }
 }

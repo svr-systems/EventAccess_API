@@ -35,4 +35,12 @@ return [
         ],
     ],
 
+    'openpay' => [
+        'merchant_id' => env('OPENPAY_MERCHANT_ID'),
+        'private_key' => env('OPENPAY_PRIVATE_KEY'),
+        'country' => env('OPENPAY_COUNTRY', 'MX'),
+        'ip' => env('OPENPAY_IP', '127.0.0.1'),
+        'three_d_secure_amount' => env('OPENPAY_3D_SECURE_AMOUNT'),
+    ],
+
 ];

@@ -181,65 +181,16 @@ class FacturapiController extends Controller {
     }
   }
 
-  public static function stampNexoraInvoice($stand_allocation_id) {
+  public static function stampInvoice($facturapi, $product, $customer, $cfdi_usege) {
+    $response = new \stdClass;
+    $response->status = false;
     try {
-      $response = new \stdClass;
-      $response->status = false;
-      $facturapi = new Facturapi(env('FACTURAPI_KEY'));
-
-      $stand_allocation = StandAllocation::find($stand_allocation_id);
-      $stand_request = StandRequest::find($stand_allocation->stand_request_id);
-      $event = Event::find($stand_allocation->event_id);
-      $supplier = Supplier::find($stand_allocation->supplier_id);
-      if (!$supplier->fiscal_code) {
-        $response->message = "La información fiscal no ha sido cargada";
-        return $response;
-      }
-      $fiscal_regimes = FiscalRegime::find($supplier->fiscal_regime_id);
-      $cfdi_usege = CfdiUsage::find($supplier->cfdi_usage_id);
-
-      $customer = [
-        "legal_name" => $supplier->fiscal_name,
-        "tax_id" => $supplier->fiscal_code,
-        "tax_system" => $fiscal_regimes->code,
-        "address" => [
-          "zip" => $supplier->fiscal_zip,
-          "country" => "MEX"
-        ]
-      ];
-
-      try {
-        $customer = $facturapi->Customers->create($customer);
-      } catch (Throwable $err) {
-        $response->message = "La información fiscal no coincide con los registros del SAT";
-        return $response;
-      }
-
-      
-      // dd($customer);
-
-      // $price = $consultation->charge_amount / 1.16;
-      $taxes = [
-        [
-          "type" => "IVA",
-          "rate" => 0.16
-        ]
-      ];
-
-      $price = $stand_request->price * ($event->commission_percentage / 100);
 
       $item = [
         [
           "quantity" => 1,
           "discount" => 0,
-          "product" => [
-            "description" => "COMISION POR SERVICIO",
-            "product_key" => "85121600",
-            "unit_key" => "E48",
-            "price" => $price,
-            "tax_included" => true,
-            "taxes" => $taxes
-          ]
+          "product" => $product
         ]
       ];
 
@@ -251,130 +202,15 @@ class FacturapiController extends Controller {
         "use" => $cfdi_usege->code
       ]);
 
-      $pdf = $facturapi->Invoices->download_pdf($invoice->id);
-      $xml = $facturapi->Invoices->download_xml($invoice->id);
-      $response->pdf = base64_encode($pdf);
-      $response->xml = base64_encode($xml);
-
-      $file_path_xml = public_path('..') . "/storage/app/private/temp/" . time() . ".xml";
-      $file_path_pdf = public_path('..') . "/storage/app/private/temp/" . time() . ".pdf";
-      file_put_contents($file_path_xml, $xml);
-      file_put_contents($file_path_pdf, $pdf);
-
-      // EmailController::sendInvoiceFiles(null, null, $file_path_xml, $file_path_pdf);
-      Storage::delete($file_path_xml);
-      Storage::delete($file_path_pdf);
-
-      $stand_allocation->nexora_invoice_id = $invoice->id;
-      $stand_allocation->save();
-
+      $response->invoice_id = $invoice->id;
       $response->status = true;
-      return $response;
+
     } catch (Throwable $err) {
-      $response = new \stdClass;
-      $response->status= false;
       $response->message = $err;
-      return $response;
     }
+    return $response;
   }
-
-  public static function stampOrganizationInvoice($stand_allocation_id) {
-    try {
-      $response = new \stdClass;
-
-      $stand_allocation = StandAllocation::find($stand_allocation_id);
-      $stand_request = StandRequest::find($stand_allocation->stand_request_id);
-      $event = Event::find($stand_allocation->event_id);
-      $company = Company::find($event->company_id);
-      $supplier = Supplier::find($stand_allocation->supplier_id);
-      if (!$supplier->fiscal_code) {
-        $response->message = "La información fiscal no ha sido cargada";
-        return $response;
-      }
-      $fiscal_regimes = FiscalRegime::find($supplier->fiscal_regime_id);
-      $cfdi_usege = CfdiUsage::find($supplier->cfdi_usage_id);
-
-
-      $facturapi = new Facturapi(env('FACTURAPI_USER_KEY'));
-      $organization_key = $facturapi->Organizations->getTestApiKey(
-        $company->fiscal_organization_id
-      );
-      $facturapi = new Facturapi($organization_key);
-
-      $customer = [
-        "legal_name" => $supplier->fiscal_name,
-        "tax_id" => $supplier->fiscal_code,
-        "tax_system" => $fiscal_regimes->code,
-        "address" => [
-          "zip" => $supplier->fiscal_zip,
-          "country" => "MEX"
-        ]
-      ];
-
-      try {
-        $customer = $facturapi->Customers->create($customer);
-      } catch (Throwable $err) {
-        $response->message = "La información fiscal no coincide con los registros del SAT";
-        return $response;
-      }
-
-      // $price = $consultation->charge_amount / 1.16;
-      $taxes = [
-        [
-          "type" => "IVA",
-          "rate" => 0.16
-        ]
-      ];
-
-      $price = $stand_request->price * (1 - ($event->commission_percentage / 100));
-
-      $item = [
-        [
-          "quantity" => 1,
-          "discount" => 0,
-          "product" => [
-            "description" => "TARIFA POR SERVICIO",
-            "product_key" => "85121600",
-            "unit_key" => "E48",
-            "price" => $price,
-            "tax_included" => true,
-            "taxes" => $taxes
-          ]
-        ]
-      ];
-
-      $invoice = $facturapi->Invoices->create([
-        "customer" => $customer->id,
-        "items" => $item,
-        "payment_form" => '04',
-        "payment_method" => 'PUE',
-        "use" => $cfdi_usege->code
-      ]);
-
-      $pdf = $facturapi->Invoices->download_pdf($invoice->id);
-      $xml = $facturapi->Invoices->download_xml($invoice->id);
-      $response->pdf = base64_encode($pdf);
-      $response->xml = base64_encode($xml);
-
-      $file_path_xml = public_path('..') . "/storage/app/private/temp/" . time() . ".xml";
-      $file_path_pdf = public_path('..') . "/storage/app/private/temp/" . time() . ".pdf";
-      file_put_contents($file_path_xml, $xml);
-      file_put_contents($file_path_pdf, $pdf);
-
-      // EmailController::sendInvoiceFiles(null, null, $file_path_xml, $file_path_pdf);
-      Storage::delete($file_path_xml);
-      Storage::delete($file_path_pdf);
-
-      $stand_allocation->organization_invoice_id = $invoice->id;
-      $stand_allocation->save();
-
-      $response->status = true;
-      return $response;
-    } catch (Throwable $err) {
-      return $err;
-    }
-  }
-
+  
   public function getInvoiceFile(Request $request) {
     try {
       $facturapi = new Facturapi(env('FACTURAPI_KEY'));
@@ -396,5 +232,39 @@ class FacturapiController extends Controller {
     } catch (Throwable $err) {
       return $this->apiRsp(500, null, $err);
     }
+  }
+
+  public static function getCustomer($facturapi, $supplier, $fiscal_regimes) {
+    $response = new \stdClass;
+    $response->status = false;
+    $customer = [
+      "legal_name" => $supplier->fiscal_name,
+      "tax_id" => $supplier->fiscal_code,
+      "tax_system" => $fiscal_regimes->code,
+      "address" => [
+        "zip" => $supplier->fiscal_zip,
+        "country" => "MEX"
+      ]
+    ];
+
+    try {
+      $response->customer = $facturapi->Customers->create($customer);
+      $response->status = true;
+    } catch (Throwable $err) {
+      $response->message = "La información fiscal no coincide con los registros del SAT";
+    }
+    return $response;
+  }
+
+  public static function getFacturapiInstance() {
+    return new Facturapi(env('FACTURAPI_KEY'));
+  }
+
+  public static function getFacturapiOrganizationInstance($company){
+    $facturapi = new Facturapi(env('FACTURAPI_USER_KEY'));
+    $organization_key = $facturapi->Organizations->getTestApiKey(
+        $company->fiscal_organization_id
+      );
+    return new Facturapi($organization_key);
   }
 }
