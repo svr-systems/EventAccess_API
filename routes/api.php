@@ -103,6 +103,13 @@ Route::prefix('v1')->group(function () {
         Route::post('/sales/stamp', [SaleController::class, 'stamp']);
         Route::post('/sales/stamp/files', [FacturapiController::class, 'getInvoiceFile']);
 
+        Route::prefix('events')->group(function () {
+          Route::get('/', [EventController::class, 'publicIndex']);
+          Route::get('/presentation_dates', [PresentationDateController::class, 'publicIndex']);
+          Route::get('/presentation_tickets', [PresentationTicketController::class, 'publicIndex']);
+          Route::get('/{id}', [EventController::class, 'publicShow']);
+        });
+
         Route::get('/catalogs/{catalog}', [CatalogController::class, 'attendeeIndex']);
 
         Route::get('create', [AttendeeUserController::class, 'syncAttendeeUsers']);
