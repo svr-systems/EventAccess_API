@@ -281,7 +281,7 @@ class PresentationTicket extends Model {
     $items = $items->get();
 
     $items = $items->map(function ($item) {
-      $item->qr_b64 = QrService::makeEncryptedTicketBase64(
+      $item->qr_b64 = QrService::makeEncryptedBase64(
         (string) $item->ticket_code,
         'ticket_qr'
       );

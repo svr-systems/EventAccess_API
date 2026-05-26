@@ -6,13 +6,13 @@ use Illuminate\Support\Facades\Storage;
 
 class QrService
 {
-  public static function makeEncryptedTicketBase64(string $ticket_code, string $prefix = 'ticket'): ?string
+  public static function makeEncryptedBase64(string $code, string $prefix = 'ticket'): ?string
   {
-    if (trim($ticket_code) === '') {
+    if (trim($code) === '') {
       return null;
     }
 
-    $encrypted = Crypt::encryptString($ticket_code);
+    $encrypted = Crypt::encryptString($code);
 
     $file_name = $prefix . '_' . uniqid() . '.png';
     $disk = Storage::disk('temp');

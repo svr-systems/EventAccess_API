@@ -13,12 +13,28 @@ use App\Models\Supplier;
 use App\Models\SupplierUser;
 use App\Models\User;
 use App\Services\EmailService;
+use App\Services\QrService;
+use Crypt;
 use DB;
 use Illuminate\Http\Request;
 use Throwable;
 
 class MeetingController extends Controller {
   use HasActiveToggle;
+
+  /**
+   * ===========================================
+   * HELPERS
+   * ===========================================
+   */
+  private function decryptId(string $token): ?string {
+    try {
+      $id = Crypt::decryptString($token);
+      return $id;
+    } catch (Throwable $err) {
+      return null;
+    }
+  }
 
   /**
    * ===========================================
@@ -259,6 +275,80 @@ class MeetingController extends Controller {
         200,
         'Registro actualizado correctamente',
         null
+      );
+    } catch (Throwable $err) {
+      DB::rollBack();
+      return $this->rsp(500, null, $err);
+    }
+  }
+
+  public function getQr(Request $request) {
+    try {
+      $item = Meeting::getSupplierItem($request);
+
+      if (is_null($item)) {
+        return $this->rsp(404, 'Registro no encontrado');
+      }
+
+      return $this->rsp(200, 'Registro retornado correctamente', [
+        'qr' => QrService::makeEncryptedBase64($item->display_id, 'meeting'),
+      ]);
+    } catch (Throwable $err) {
+      return $this->rsp(500, null, $err);
+    }
+  }
+
+  /**
+   * ===========================================
+   * STAFF
+   * ===========================================
+   */
+  public function staffIndex(Request $request) {
+    try {
+      $response = new \stdClass;
+      $response->event = Event::find($request->event_id, ['name', 'meeting_time']);
+      $response->meetings = Meeting::getStaffMeetings($request->event_id);
+      return $this->rsp(200, 'Registros retornados correctamente', [
+        'items' => $response,
+      ]);
+    } catch (Throwable $err) {
+      return $this->rsp(500, null, $err);
+    }
+  }
+
+  public function checkMeeting(Request $request) {
+    DB::beginTransaction();
+
+    try {
+      $meeting_code = $this->decryptId($request->meeting_code);
+
+      if (!$meeting_code) {
+        return $this->rsp(500, 'Esta reunión no existe');
+      }
+
+      $id = (int) explode('-', $meeting_code)[1];
+
+      $meeting = Meeting::find($id);
+
+      if (!$meeting) {
+        return $this->rsp(500, 'Esta reunión no existe');
+      }
+
+      if ($meeting->is_checked_in) {
+        return $this->rsp(422, 'Esta reunión ya fue marcada como asistida');
+      }
+
+      $meeting->is_checked_in = true;
+      $meeting->save();
+
+      DB::commit();
+
+      $supplier_user = SupplierUser::find($meeting->supplier_user_id);
+      $user = User::find($supplier_user->user_id);
+
+      return $this->rsp(
+        200,
+        'Bienvenido ' . $user->full_name
       );
     } catch (Throwable $err) {
       DB::rollBack();

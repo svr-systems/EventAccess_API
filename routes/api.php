@@ -185,6 +185,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/catalogs/{catalog}', [CatalogController::class, 'supplierIndex']);
 
         Route::get('/meetings', [MeetingController::class, 'supplierIndex']);
+        Route::post('/meetings/qr', [MeetingController::class, 'getQr']);
         Route::patch('/meetings/confirm', [MeetingController::class, 'supplierConfirm']);
 
         Route::get('/meeting/requests', [MeetingRequestController::class, 'index']);
@@ -241,6 +242,9 @@ Route::prefix('v1')->group(function () {
   Route::group(['middleware' => 'auth:api'], function () {
     Route::middleware([EnsureUserIsStaff::class])->group(function () {
       Route::prefix('staff')->group(function () {
+
+        Route::get('/events/meetings', [MeetingController::class, 'staffIndex']);
+        Route::post('/events/meetings/checkin', [MeetingController::class, 'checkMeeting']);
 
         Route::post('/events/tickets/checkin', [TicketCheckinController::class, 'store']);
 

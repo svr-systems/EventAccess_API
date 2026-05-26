@@ -10,7 +10,6 @@ use DB;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Http\Request;
-use NunoMaduro\Collision\Provider;
 use Validator;
 
 class Meeting extends Model {
@@ -66,7 +65,7 @@ class Meeting extends Model {
    * ===========================================
    */
   public function getDisplayIdAttribute(): string {
-    return DisplayId::make('E', $this->id, 4);
+    return DisplayId::make('M', $this->id, 4);
   }
 
   /**
@@ -643,5 +642,55 @@ class Meeting extends Model {
 
       return $item;
     });
+  }
+  public static function getSupplierItem(Request $request) {
+    $supplier_user = SupplierUser::getFirstByUser($request->user()->id);
+
+    $item = self::query();
+
+    $item->select([
+      'meetings.*'
+    ]);
+
+    $item->where('meetings.is_active', 1)->
+      where('supplier_user_id', $supplier_user->id)->
+      where('supplier_id', $supplier_user->supplier_id)->
+      where('is_confirmed', 1)->
+      where('id',$request->meeting_id);
+
+    $item = $item->first();
+
+    return $item;
+  }
+
+  /**
+   * ===========================================
+   * CONSULTAS STAFF
+   * ===========================================
+   */
+  public static function getStaffMeetings($event_id) {
+
+    $items = self::query();
+
+    $items->select([
+      'meetings.id',
+      'meetings.supplier_id',
+      'meetings.buyer_id',
+      'meetings.start_time',
+      'meetings.is_checked_in',
+    ]);
+
+    $items->with([
+      'supplier:id,name',
+      'buyer:id,name',
+    ]);
+
+    $items->where('meetings.is_active', 1)->
+      where('event_id', $event_id)->
+      where('is_confirmed', true);
+
+    $items = $items->get();
+
+    return $items;
   }
 }
