@@ -152,7 +152,7 @@ class StandAllocationController extends Controller {
         'device_session_id' => $request->device_session_id,
       ];
 
-      $charge_data = OpenpayService::getChargeData($customer, $payment_data);
+      $charge_data = OpenpayService::getChargeData($customer, $payment_data, 'stand');
 
       $openpay = OpenpayService::payment($charge_data);
 

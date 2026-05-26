@@ -140,7 +140,7 @@ class SaleController extends Controller {
         'device_session_id' => $request->device_session_id,
       ];
 
-      $charge_data = OpenpayService::getChargeData($customer, $payment_data);
+      $charge_data = OpenpayService::getChargeData($customer, $payment_data, 'boletos');
 
       $openpay = OpenpayService::payment($charge_data);
 

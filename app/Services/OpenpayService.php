@@ -63,7 +63,7 @@ class OpenpayService {
     ];
   }
 
-  public static function getChargeData($customer, $data): array {
+  public static function getChargeData($customer, $data,$three_d_path): array {
     $charge_data = [
       'method' => 'card',
       'source_id' => $data->token_id,
@@ -79,7 +79,7 @@ class OpenpayService {
 
     if ($secure_amount && $data->price > $secure_amount) {
       $charge_data['use_3d_secure'] = true;
-      $charge_data['redirect_url'] = config('app.front_url') . 'proveedor/pago_exitoso';
+      $charge_data['redirect_url'] = config('app.front_url') . $three_d_path . '/pago_exitoso';
     }
 
     return $charge_data;
